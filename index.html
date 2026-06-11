@@ -522,6 +522,70 @@ html,body{
 .d-xp{width:100%;max-width:300px;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;}
 .d-xpfill{height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,var(--g),#9effc9);box-shadow:0 0 8px rgba(0,232,122,0.5);transition:width .8s var(--ease);}
 .d-xplbl{font-size:7px;letter-spacing:1px;color:var(--g-faint);text-align:center;}
+
+/* ════════════════════════════════════
+   TECHNIQUE REFERENCE — guide tab + panel
+═══════════════════════════════════ */
+/* Left-edge pull tab, only visible mid-procedure */
+#refBtn{
+  position:fixed;left:0;top:45%;z-index:9;
+  display:none;align-items:center;justify-content:center;
+  background:rgba(4,9,8,0.92);border:1px solid var(--g-faint);border-left:none;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  color:var(--g-dim);
+  padding:11px 7px;border-radius:0 7px 7px 0;
+  font-family:var(--mono);font-size:8px;letter-spacing:3px;
+  writing-mode:vertical-rl;
+  cursor:pointer;touch-action:manipulation;
+  box-shadow:2px 0 14px rgba(0,0,0,0.4);
+  transition:color .2s var(--ease),box-shadow .2s var(--ease),background .2s var(--ease);
+}
+#refBtn:hover,#refBtn:focus-visible{color:var(--g);background:rgba(0,232,122,0.08);outline:none;}
+#refBtn.hl{animation:refHl 1.4s var(--ease) 2;}
+@keyframes refHl{0%,100%{box-shadow:2px 0 14px rgba(0,0,0,0.4);color:var(--g-dim);}50%{box-shadow:0 0 18px rgba(0,232,122,0.5);color:var(--g);}}
+
+/* Full-height sliding reference panel */
+#refPanel{
+  position:fixed;inset:0;z-index:14;display:none;flex-direction:column;
+  background:rgba(2,6,5,0.94);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  padding:max(16px,env(safe-area-inset-top,16px)) 16px max(16px,env(safe-area-inset-bottom,16px));
+}
+#refPanel.show{display:flex;animation:refIn .32s var(--ease);}
+@keyframes refIn{from{opacity:0;transform:translateX(-14px);}to{opacity:1;transform:translateX(0);}}
+.rp-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-shrink:0;}
+.rp-title{font-size:11px;letter-spacing:3px;color:var(--g);}
+.rp-close{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  background:transparent;border:1px solid var(--g-faint);color:var(--g-dim);
+  font-family:var(--mono);font-size:14px;cursor:pointer;touch-action:manipulation;
+}
+.rp-close:hover,.rp-close:focus-visible{color:var(--g);border-color:var(--g);outline:none;}
+.rp-body{overflow-y:auto;display:flex;flex-direction:column;gap:14px;-webkit-overflow-scrolling:touch;}
+.rp-sec{font-size:8px;letter-spacing:3px;color:var(--g-faint);border-bottom:1px solid rgba(0,232,122,0.1);padding-bottom:4px;}
+
+/* "Current step" highlighted technique card */
+.rp-now{
+  background:rgba(0,232,122,0.06);border:1px solid var(--g-dim);border-radius:5px;
+  padding:11px 13px;display:flex;flex-direction:column;gap:6px;
+  box-shadow:0 0 16px rgba(0,232,122,0.12);
+}
+.rp-now-t{font-size:11px;letter-spacing:2px;color:var(--g);}
+.rp-now-d{font-size:9px;line-height:1.7;color:rgba(0,232,122,0.75);letter-spacing:.5px;}
+.rp-now-tgt{font-size:8px;letter-spacing:1px;color:var(--o);}
+
+/* Protocol list — each step with target tolerance */
+.rp-step{display:flex;gap:9px;align-items:flex-start;font-size:8.5px;line-height:1.5;color:var(--g-dim);letter-spacing:.5px;}
+.rp-step.cur{color:var(--g);}
+.rp-step.done .rp-n{background:var(--g);color:#04130c;border-color:var(--g);}
+.rp-step.cur .rp-n{border-color:var(--o);color:var(--o);}
+.rp-n{width:17px;height:17px;border:1px solid var(--g-faint);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;flex-shrink:0;}
+.rp-step b{color:var(--g);font-weight:normal;}
+
+/* Glossary — term + definition pairs */
+.rp-gloss{display:flex;flex-direction:column;gap:9px;}
+.rp-term{display:flex;flex-direction:column;gap:2px;}
+.rp-term-h{font-size:9px;letter-spacing:1px;color:var(--g);}
+.rp-term-d{font-size:8px;line-height:1.6;color:var(--g-dim);letter-spacing:.4px;}
 </style>
 </head>
 <body>
@@ -574,6 +638,27 @@ html,body{
   <div class="st-seg"></div><div class="st-seg"></div><div class="st-seg"></div>
   <div class="st-seg"></div><div class="st-seg"></div><div class="st-seg"></div>
   <div class="st-seg"></div>
+</div>
+
+<!-- TECHNIQUE REFERENCE — pull tab + panel -->
+<div id="refBtn" onclick="openRef()">❔ GUIDE</div>
+<div id="refPanel">
+  <div class="rp-head">
+    <div class="rp-title">TECHNIQUE REFERENCE</div>
+    <button class="rp-close" onclick="closeRef()" aria-label="Close reference">✕</button>
+  </div>
+  <div class="rp-body">
+    <div class="rp-sec">CURRENT STEP — WHAT CORRECT LOOKS LIKE</div>
+    <div class="rp-now">
+      <div class="rp-now-t" id="rpNowT">—</div>
+      <div class="rp-now-d" id="rpNowD">—</div>
+      <div class="rp-now-tgt" id="rpNowTgt">—</div>
+    </div>
+    <div class="rp-sec">FULL PROTOCOL</div>
+    <div id="rpProto"></div>
+    <div class="rp-sec">GLOSSARY</div>
+    <div class="rp-gloss" id="rpGloss"></div>
+  </div>
 </div>
 
 <!-- FOCUS BAR -->
@@ -1834,6 +1919,11 @@ function nextStep(){
   sb.classList.add('pulse');setTimeout(()=>sb.classList.remove('pulse'),400);
   updateStepTrack();
   haptic(18);  // gentle confirmation buzz on advancing a step
+  // Keep the reference panel current; nudge the GUIDE tab so trainees
+  // learn it follows along with each new step.
+  if(document.getElementById('refPanel').classList.contains('show'))renderRef();
+  const rb=document.getElementById('refBtn');
+  rb.classList.remove('hl');void rb.offsetWidth;rb.classList.add('hl');
 }
 // Paint the 7-segment tracker: completed steps green, current amber.
 function updateStepTrack(){
@@ -1842,6 +1932,55 @@ function updateStepTrack(){
     const n=i+1;                       // segment 1..7 maps to step 1..7
     seg.className='st-seg'+(n<S.step?' done':n===S.step?' cur':'');
   });
+}
+
+// ═══════════════════════════════════════
+// TECHNIQUE REFERENCE — instructional content
+// Per-step "ideal technique" plus a glossary of the key
+// embryology terms used throughout the procedure.
+// ═══════════════════════════════════════
+const TECHNIQUE=[
+  null,
+  {t:'1 · FOCUS THE ZONA',     d:'Bring the zona pellucida — the bright outer shell — to a crisp edge using the FOCUS knob. Let the heated stage reach 37°C first; a cold stage stresses the embryo.', tgt:'TARGET · Focus SHARP (≥82%) at 37.0°C'},
+  {t:'2 · POSITION THE ICM',   d:'Press and hold the HOLD pedal to grip the embryo, then rotate it with the STAGE joystick until the inner cell mass sits at 9 o\'clock — opposite the side you will breach.', tgt:'TARGET · ICM at the 9 o\'clock position'},
+  {t:'3 · DRILL THE ZONA',     d:'Drag the red laser target onto the zona on the side OPPOSITE the ICM (≈3 o\'clock). Fire 3–5 short pulses to open a clean breach. Never fire close to the ICM.', tgt:'TARGET · 3–5 pulses, well clear of ICM'},
+  {t:'4 · AWAIT HERNIATION',   d:'Once breached, trophectoderm cells naturally push out through the opening. Wait for them to herniate — do not aspirate early.', tgt:'TARGET · TE cells visibly herniating'},
+  {t:'5 · ASPIRATE TE CELLS',  d:'Advance the biopsy pipette (▶) to the herniated cells, then hold SUCTION to draw 5–8 cells in. Keep pressure gentle — excess suction lyses cells.', tgt:'TARGET · 5–8 cells, gentle suction'},
+  {t:'6 · CUT THE JUNCTIONS',  d:'Apply gentle suction to stretch the cytoplasmic bridge, then fire the laser at the cell junctions near the pipette tip to cleanly separate the specimen.', tgt:'TARGET · laser-cut bridge at pipette tip'},
+  {t:'7 · SECURE SPECIMEN',    d:'Retract the pipette (◀) to withdraw the biopsied cells. The specimen is now ready for vitrification and PGT analysis.', tgt:'TARGET · pipette retracted, specimen held'},
+];
+const GLOSSARY=[
+  ['Zona pellucida','The glycoprotein shell surrounding the embryo. The laser breaches it to allow access for biopsy.'],
+  ['ICM','Inner Cell Mass — the cluster of cells that becomes the fetus. Kept away from the biopsy site to protect it.'],
+  ['Trophectoderm (TE)','The outer cell layer that forms the placenta. These are the cells sampled for testing.'],
+  ['Blastocoel','The fluid-filled cavity of a day-5 blastocyst. Partial collapse during biopsy is normal.'],
+  ['Herniation','TE cells protruding through the zona opening, presenting themselves for aspiration.'],
+  ['Cytoplasmic bridge','The thin strand of cytoplasm linking aspirated cells; laser-cut to release the sample cleanly.'],
+  ['PGT','Preimplantation Genetic Testing — the genetic analysis run on the biopsied cells.'],
+];
+
+// Render panel contents reflecting the current step.
+function renderRef(){
+  const step=Math.max(1,Math.min(7,S.step||1));
+  const tech=TECHNIQUE[step];
+  document.getElementById('rpNowT').textContent=tech.t;
+  document.getElementById('rpNowD').textContent=tech.d;
+  document.getElementById('rpNowTgt').textContent=tech.tgt;
+  // Full protocol with done/current state mirroring the live tracker
+  document.getElementById('rpProto').innerHTML=TECHNIQUE.slice(1).map((tc,i)=>{
+    const n=i+1,cls=n<S.step?'done':n===S.step?'cur':'';
+    return `<div class="rp-step ${cls}"><div class="rp-n">${n<S.step?'✓':n}</div><div><b>${tc.t.split('·')[1].trim()}</b> — ${tc.tgt.replace('TARGET · ','')}</div></div>`;
+  }).join('');
+  // Glossary (rendered once is fine, but cheap to refresh)
+  document.getElementById('rpGloss').innerHTML=GLOSSARY.map(([term,def])=>
+    `<div class="rp-term"><div class="rp-term-h">${term}</div><div class="rp-term-d">${def}</div></div>`).join('');
+}
+function openRef(){
+  renderRef();
+  document.getElementById('refPanel').classList.add('show');
+}
+function closeRef(){
+  document.getElementById('refPanel').classList.remove('show');
 }
 
 // ═══════════════════════════════════════
@@ -2023,6 +2162,8 @@ function showDebrief(){
     haptic([0,30,40,30,40,60]);
   }
 
+  document.getElementById('refBtn').style.display='none';
+  closeRef();
   document.getElementById('mOv').style.display='none';
   document.getElementById('dOv').style.display='flex';
 }
@@ -2083,6 +2224,9 @@ function startSim(){
   updateStepTrack();
   document.getElementById('hErrLine').style.display='none';
   document.getElementById('hErr').textContent='0';
+  // Technique reference tab
+  document.getElementById('refBtn').style.display='flex';
+  closeRef();
 
   // Refresh objective display
   const obj=OBJS[oIdx];
@@ -2103,6 +2247,8 @@ function toMenu(){
   document.getElementById('blastoBar').classList.remove('show');
   document.getElementById('tempBadge').classList.remove('show');
   document.getElementById('stepTrack').classList.remove('show');
+  document.getElementById('refBtn').style.display='none';
+  closeRef();
   document.getElementById('mOv').style.display='flex';
 }
 
