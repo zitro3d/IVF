@@ -437,6 +437,19 @@ html,body{
 .go:active{background:rgba(0,232,122,0.18);transform:scale(0.97);}
 .m-hint{font-size:7px;letter-spacing:1px;color:rgba(0,221,114,0.2);text-align:center;line-height:1.8;}
 
+/* SKILL RANK PANEL (menu) */
+.m-rank{
+  width:100%;max-width:320px;
+  background:rgba(0,232,122,0.04);border:1px solid var(--g-faint);
+  border-radius:4px;padding:9px 13px;display:flex;flex-direction:column;gap:6px;
+}
+.mr-top{display:flex;justify-content:space-between;align-items:baseline;}
+.mr-tier{font-size:11px;letter-spacing:3px;color:var(--g);text-shadow:0 0 12px rgba(0,232,122,0.4);}
+.mr-stat{font-size:8px;letter-spacing:1px;color:var(--g-dim);}
+.mr-bar{height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;}
+.mr-fill{height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,var(--g),#9effc9);box-shadow:0 0 8px rgba(0,232,122,0.5);transition:width .6s var(--ease);}
+.mr-next{font-size:7px;letter-spacing:1px;color:var(--g-faint);text-align:center;}
+
 /* CONTROLS HINT overlay (first session) */
 #controlHint{
   position:fixed;inset:0;z-index:11;background:rgba(0,0,0,0.88);
@@ -484,6 +497,31 @@ html,body{
   padding:11px 20px;background:transparent;border:1px solid rgba(0,221,114,0.25);color:rgba(0,221,114,0.45);
   font-family:var(--mono);font-size:8px;letter-spacing:2px;cursor:pointer;border-radius:2px;touch-action:manipulation;
 }
+
+/* DEBRIEF — rank row, session stats, XP bar */
+.d-rankrow{display:flex;gap:10px;align-items:center;justify-content:center;min-height:18px;}
+.d-rankbadge{
+  font-size:9px;letter-spacing:3px;color:var(--g);
+  border:1px solid var(--g-faint);border-radius:3px;padding:3px 12px;
+  background:rgba(0,232,122,0.05);
+}
+.d-newbest{
+  font-size:8px;letter-spacing:2px;color:var(--o);
+  border:1px solid var(--o-dim);border-radius:3px;padding:3px 9px;
+  background:rgba(255,176,32,0.08);animation:nbPulse 1.1s ease-in-out infinite;
+}
+@keyframes nbPulse{0%,100%{box-shadow:0 0 4px rgba(255,176,32,0.2);}50%{box-shadow:0 0 14px rgba(255,176,32,0.55);}}
+.d-rankbadge.up{color:var(--o);border-color:var(--o);background:rgba(255,176,32,0.1);animation:nbPulse 1.1s ease-in-out infinite;}
+.d-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;max-width:300px;}
+.d-scard{
+  background:rgba(0,232,122,0.03);border:1px solid var(--g-faint);
+  border-radius:3px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.d-sval{font-size:14px;color:var(--g);letter-spacing:1px;}
+.d-slbl{font-size:6px;letter-spacing:1.5px;color:var(--g-faint);text-align:center;}
+.d-xp{width:100%;max-width:300px;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;}
+.d-xpfill{height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,var(--g),#9effc9);box-shadow:0 0 8px rgba(0,232,122,0.5);transition:width .8s var(--ease);}
+.d-xplbl{font-size:7px;letter-spacing:1px;color:var(--g-faint);text-align:center;}
 </style>
 </head>
 <body>
@@ -692,6 +730,16 @@ html,body{
   <div class="m-title">Trophectoderm<br>Biopsy</div>
   <div class="m-sub">Day 5 Blastocyst · ESHRE 2024 Protocol<br>Laser-assisted · PGT specimen collection</div>
 
+  <!-- SKILL RANK PANEL — persistent progression across sessions -->
+  <div class="m-rank" id="mRank">
+    <div class="mr-top">
+      <span class="mr-tier" id="mrTier">NOVICE</span>
+      <span class="mr-stat" id="mrStat">0 XP</span>
+    </div>
+    <div class="mr-bar"><div class="mr-fill" id="mrFill"></div></div>
+    <div class="mr-next" id="mrNext">Complete sessions to advance</div>
+  </div>
+
   <div class="diff-row">
     <div class="db" id="dE" onclick="setDiff('e')">GUIDED</div>
     <div class="db sel" id="dM" onclick="setDiff('m')">STANDARD</div>
@@ -714,9 +762,25 @@ html,body{
 
 <!-- DEBRIEF OVERLAY -->
 <div class="ov" id="dOv">
+  <div class="d-rankrow">
+    <span class="d-rankbadge" id="dRankBadge">NOVICE</span>
+    <span class="d-newbest" id="dNewBest" style="display:none">★ NEW BEST</span>
+  </div>
   <div class="d-stars" id="dStars">☆☆☆☆☆</div>
   <div class="d-grade" id="dGrade">—</div>
   <div class="d-sub" id="dSub">—</div>
+
+  <!-- SESSION STATS -->
+  <div class="d-stats">
+    <div class="d-scard"><div class="d-sval" id="dsTime">0:00</div><div class="d-slbl">TIME</div></div>
+    <div class="d-scard"><div class="d-sval" id="dsPts">0</div><div class="d-slbl">POINTS</div></div>
+    <div class="d-scard"><div class="d-sval" id="dsBest">—</div><div class="d-slbl">BEST · THIS MODE</div></div>
+  </div>
+
+  <!-- RANK PROGRESS -->
+  <div class="d-xp"><div class="d-xpfill" id="dXpFill"></div></div>
+  <div class="d-xplbl" id="dXpLbl">— XP to next rank</div>
+
   <div class="d-grid">
     <div class="d-card" id="dc1"><div class="d-val" id="dv1">—</div><div class="d-lbl">FOCUS</div></div>
     <div class="d-card" id="dc2"><div class="d-val" id="dv2">—</div><div class="d-lbl">ICM POS</div></div>
@@ -1802,6 +1866,44 @@ function updateErrHUD(){
 }
 
 // ═══════════════════════════════════════
+// PROGRESSION — persistent skill ranks
+// XP accrues from each session's final score (0–100). Crossing a
+// threshold promotes the trainee through four competency tiers,
+// mirroring how clinical skills are signed off in practice.
+// ═══════════════════════════════════════
+const RANKS=[
+  {n:'NOVICE',     xp:0,    note:'Learning the instrument layout'},
+  {n:'COMPETENT',  xp:200,  note:'Reliable on guided runs'},
+  {n:'PROFICIENT', xp:550,  note:'Consistent, few errors'},
+  {n:'EXPERT',     xp:1100, note:'Clinical-grade technique'},
+];
+const STORE_KEY='ivf_progress_v1';
+function loadProg(){
+  try{const p=JSON.parse(localStorage.getItem(STORE_KEY));if(p&&typeof p==='object')return p;}catch(e){}
+  return{xp:0,sessions:0,best:{e:0,m:0,h:0}};
+}
+function saveProg(p){try{localStorage.setItem(STORE_KEY,JSON.stringify(p));}catch(e){}}
+let PROG=loadProg();
+// Resolve an XP total to its current rank and progress toward the next.
+function rankFor(xp){
+  let idx=0;
+  for(let i=0;i<RANKS.length;i++)if(xp>=RANKS[i].xp)idx=i;
+  const cur=RANKS[idx],next=RANKS[idx+1]||null;
+  const pct=next?Math.min(100,Math.round((xp-cur.xp)/(next.xp-cur.xp)*100)):100;
+  return{idx,cur,next,pct};
+}
+// Paint the rank panel on the start menu from stored progress.
+function renderMenuRank(){
+  const r=rankFor(PROG.xp);
+  document.getElementById('mrTier').textContent=r.cur.n;
+  document.getElementById('mrStat').textContent=`${PROG.xp} XP · ${PROG.sessions} run${PROG.sessions===1?'':'s'}`;
+  document.getElementById('mrFill').style.width=r.pct+'%';
+  document.getElementById('mrNext').textContent=r.next
+    ? `${r.next.xp-PROG.xp} XP to ${r.next.n}`
+    : 'Top rank reached — ' + r.cur.note;
+}
+
+// ═══════════════════════════════════════
 // UI HELPERS
 // ═══════════════════════════════════════
 function notify(msg,type=''){
@@ -1886,6 +1988,40 @@ function showDebrief(){
   el.innerHTML=S.errors.length
     ?S.errors.map(e=>`<div class="d-err">${e}</div>`).join('')
     :'<div class="d-ok">✓ No errors recorded</div>';
+
+  // ── SESSION STATS & PROGRESSION ───────────────────────
+  const mins=Math.floor(S.elapsed/60),secs=S.elapsed%60;
+  document.getElementById('dsTime').textContent=`${mins}:${secs<10?'0':''}${secs}`;
+  document.getElementById('dsPts').textContent=S.score;
+
+  // Promote: capture rank before awarding XP so we can detect a tier-up.
+  const rankBefore=rankFor(PROG.xp).idx;
+  const prevBest=PROG.best[diff]||0;
+  const newBest=grand>prevBest;
+  if(newBest)PROG.best[diff]=grand;
+  PROG.xp+=grand;
+  PROG.sessions+=1;
+  saveProg(PROG);
+  const rankAfter=rankFor(PROG.xp);
+  const rankedUp=rankAfter.idx>rankBefore;
+
+  document.getElementById('dsBest').textContent=(PROG.best[diff]||grand)+'';
+  document.getElementById('dNewBest').style.display=newBest?'inline-block':'none';
+
+  const badge=document.getElementById('dRankBadge');
+  badge.textContent=rankedUp?'▲ '+rankAfter.cur.n:rankAfter.cur.n;
+  badge.className='d-rankbadge'+(rankedUp?' up':'');
+
+  document.getElementById('dXpFill').style.width=rankAfter.pct+'%';
+  document.getElementById('dXpLbl').textContent=rankAfter.next
+    ? `+${grand} XP  ·  ${rankAfter.next.xp-PROG.xp} XP to ${rankAfter.next.n}`
+    : `+${grand} XP  ·  Top rank — ${rankAfter.cur.n}`;
+
+  renderMenuRank();  // keep the menu panel in sync for when they return
+  if(rankedUp){
+    setTimeout(()=>toast('🎖️','RANK UP',`Promoted to ${rankAfter.cur.n}`),700);
+    haptic([0,30,40,30,40,60]);
+  }
 
   document.getElementById('mOv').style.display='none';
   document.getElementById('dOv').style.display='flex';
@@ -1980,6 +2116,7 @@ function onFocus(v){
 // ═══════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════
+renderMenuRank();  // reflect any stored progress on first paint
 loop();
 </script>
 </body>
