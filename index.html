@@ -63,8 +63,8 @@ html,body{
 }
 .tb-left{display:flex;flex-direction:column;gap:2px;}
 .tb-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
-.tb-item{font-size:9px;letter-spacing:2px;color:rgba(0,221,114,0.5);}
-.tb-item b{color:rgba(0,221,114,0.85);}
+.tb-item{font-size:9px;letter-spacing:2px;color:rgba(0,232,122,0.72);}
+.tb-item b{color:rgba(0,232,122,0.95);}
 .tb-item.warn b{color:var(--o);}
 .tb-item.alert b{color:var(--r);}
 .tb-item.laser b{color:var(--l);}
@@ -165,7 +165,7 @@ html,body{
   opacity:0;transition:opacity 0.4s;
 }
 #focBar.show{opacity:1;}
-.fb-l{font-size:7px;letter-spacing:2px;color:rgba(0,221,114,0.3);}
+.fb-l{font-size:7px;letter-spacing:2px;color:rgba(0,232,122,0.55);}
 .fb-t{width:70px;height:4px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;position:relative;}
 .fb-z{position:absolute;top:0;bottom:0;background:rgba(0,221,114,0.14);border-radius:2px;}
 .fb-f{height:100%;border-radius:2px;transition:width 0.06s,background 0.2s;}
@@ -193,7 +193,7 @@ html,body{
 }
 #tempBadge.show{opacity:1;}
 .temp-v{font-size:13px;letter-spacing:2px;}
-.temp-l{font-size:7px;letter-spacing:2px;color:rgba(0,221,114,0.3);}
+.temp-l{font-size:7px;letter-spacing:2px;color:rgba(0,232,122,0.55);}
 .temp-b{width:52px;height:3px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;}
 .temp-f{height:100%;border-radius:2px;transition:width 0.5s,background 0.4s;}
 
@@ -309,7 +309,7 @@ html,body{
 
 /* Joystick */
 .joy-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;}
-.joy-lbl{font-size:7px;letter-spacing:2px;color:rgba(0,221,114,0.28);}
+.joy-lbl{font-size:7px;letter-spacing:2px;color:rgba(0,232,122,0.55);}
 .joy{
   width:72px;height:72px;border-radius:50%;
   background:rgba(255,255,255,0.025);
@@ -325,7 +325,7 @@ html,body{
 
 /* HOLD SUCTION pedal — hold to grip embryo */
 .ped-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
-.ped-lbl{font-size:7px;letter-spacing:2px;color:rgba(255,170,0,0.35);text-align:center;}
+.ped-lbl{font-size:7px;letter-spacing:2px;color:rgba(255,176,32,0.6);text-align:center;}
 .pedal{
   width:100%;height:60px;border-radius:8px;
   background:rgba(255,170,0,0.06);
@@ -352,7 +352,7 @@ html,body{
 
 /* LASER FIRE button */
 .laser-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;}
-.laser-lbl{font-size:7px;letter-spacing:2px;color:rgba(255,40,0,0.35);}
+.laser-lbl{font-size:7px;letter-spacing:2px;color:rgba(255,82,52,0.62);}
 .laser-btn{
   width:64px;height:64px;border-radius:50%;
   background:rgba(255,40,0,0.06);border:1.5px solid rgba(255,40,0,0.3);color:var(--l);
@@ -369,7 +369,7 @@ html,body{
 
 /* PIPETTE advance — right side vertical slider or buttons */
 .pip-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;}
-.pip-lbl{font-size:7px;letter-spacing:2px;color:rgba(255,61,80,0.35);}
+.pip-lbl{font-size:7px;letter-spacing:2px;color:rgba(255,61,80,0.6);}
 .pip-btns{display:flex;flex-direction:column;gap:4px;}
 .pip-btn{
   width:44px;height:26px;border-radius:4px;
@@ -402,7 +402,7 @@ html,body{
   -webkit-background-clip:text;background-clip:text;color:transparent;
   text-shadow:0 0 22px rgba(0,232,122,0.25);
 }
-.m-sub{font-size:8px;letter-spacing:2px;color:rgba(0,221,114,0.35);text-align:center;line-height:1.9;}
+.m-sub{font-size:8px;letter-spacing:2px;color:rgba(0,232,122,0.58);text-align:center;line-height:1.9;}
 .m-protocol{
   background:rgba(0,221,114,0.04);border:1px solid rgba(0,221,114,0.1);
   border-radius:3px;padding:10px 14px;width:100%;max-width:320px;
@@ -456,6 +456,7 @@ html,body{
   display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;
 }
 .ch-title{font-size:11px;letter-spacing:4px;color:var(--g);}
+.ch-kbd{font-size:7.5px;letter-spacing:1px;color:var(--g-dim);text-align:center;line-height:1.7;max-width:300px;}
 .ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:300px;}
 .ch-item{
   background:rgba(0,221,114,0.04);border:1px solid rgba(0,221,114,0.1);
@@ -586,6 +587,17 @@ html,body{
 .rp-term{display:flex;flex-direction:column;gap:2px;}
 .rp-term-h{font-size:9px;letter-spacing:1px;color:var(--g);}
 .rp-term-d{font-size:8px;line-height:1.6;color:var(--g-dim);letter-spacing:.4px;}
+
+/* Keyboard map */
+.rp-keys{display:flex;flex-direction:column;gap:7px;}
+.rp-key{display:flex;align-items:center;gap:7px;font-size:8.5px;color:var(--g-dim);letter-spacing:.5px;}
+.rp-key kbd{
+  font-family:var(--mono);font-size:8px;color:var(--g);
+  background:rgba(0,232,122,0.08);border:1px solid var(--g-faint);
+  border-radius:3px;padding:2px 6px;min-width:16px;text-align:center;
+  box-shadow:0 1px 0 rgba(0,0,0,0.4);
+}
+.rp-key span{color:rgba(0,232,122,0.7);}
 </style>
 </head>
 <body>
@@ -656,6 +668,17 @@ html,body{
     </div>
     <div class="rp-sec">FULL PROTOCOL</div>
     <div id="rpProto"></div>
+    <div class="rp-sec">KEYBOARD CONTROLS</div>
+    <div class="rp-keys">
+      <div class="rp-key"><kbd>← → ↑ ↓</kbd><span>Move stage / rotate ICM</span></div>
+      <div class="rp-key"><kbd>Q</kbd><kbd>E</kbd><span>Focus out / in</span></div>
+      <div class="rp-key"><kbd>H</kbd><span>Hold pedal — grip embryo</span></div>
+      <div class="rp-key"><kbd>J</kbd><span>Suction pedal — aspirate</span></div>
+      <div class="rp-key"><kbd>Space</kbd><span>Fire laser</span></div>
+      <div class="rp-key"><kbd>,</kbd><kbd>.</kbd><span>Retract / advance pipette</span></div>
+      <div class="rp-key"><kbd>+</kbd><kbd>−</kbd><span>Zoom in / out</span></div>
+      <div class="rp-key"><kbd>G</kbd><kbd>Esc</kbd><span>Toggle / close this guide</span></div>
+    </div>
     <div class="rp-sec">GLOSSARY</div>
     <div class="rp-gloss" id="rpGloss"></div>
   </div>
@@ -806,6 +829,7 @@ html,body{
     <div class="ch-item"><div class="ch-icon">▶◀</div><div class="ch-lbl">Arrow buttons advance / retract pipette</div></div>
     <div class="ch-item"><div class="ch-icon">✦</div><div class="ch-lbl">LASER fires at draggable target on zona</div></div>
   </div>
+  <div class="ch-kbd">⌨ Keyboard: arrows move · Q/E focus · H hold · J suction · Space laser · , . pipette · G guide</div>
   <button class="ch-ok" onclick="dismissHint()">GOT IT — BEGIN</button>
 </div>
 
@@ -2260,8 +2284,106 @@ function onFocus(v){
 }
 
 // ═══════════════════════════════════════
+// ACCESSIBILITY — keyboard control + ARIA
+// The whole procedure is operable without a pointer. A global key
+// map drives the same state the touch controls do, and every custom
+// control is labelled for assistive technology.
+// ═══════════════════════════════════════
+const KEYS=new Set();                       // currently-held keys
+const MOVE=['arrowleft','arrowright','arrowup','arrowdown','w','a','s','d'];
+
+// Recompute the stage vector from held arrow/WASD keys (mirrors joystick).
+function kbVec(){
+  let x=0,y=0;
+  if(KEYS.has('arrowleft')||KEYS.has('a'))x-=1;
+  if(KEYS.has('arrowright')||KEYS.has('d'))x+=1;
+  if(KEYS.has('arrowup')||KEYS.has('w'))y-=1;
+  if(KEYS.has('arrowdown')||KEYS.has('s'))y+=1;
+  const mag=Math.hypot(x,y)||1;
+  S.joyX=x/mag;S.joyY=y/mag;S.joyActive=!!(x||y);
+  const jk=document.getElementById('jk');
+  jk.style.left=(50+S.joyX*40)+'%';jk.style.top=(50+S.joyY*40)+'%';
+}
+function nudgeFocus(d){
+  const fk=document.getElementById('fk');
+  const v=Math.max(0,Math.min(100,(+fk.value)+d));
+  fk.value=v;onFocus(v);
+}
+window.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  // Panel toggles work regardless of session state
+  if(k==='escape'){closeRef();return;}
+  if(k==='g'){const p=document.getElementById('refPanel');p.classList.contains('show')?closeRef():(S.live&&openRef());return;}
+  if(!S.live)return;
+  // Let the focus slider keep native arrow behaviour when it's focused
+  const onSlider=document.activeElement&&document.activeElement.id==='fk';
+  if(MOVE.includes(k)){
+    if(onSlider)return;
+    e.preventDefault();
+    if(!KEYS.has(k)){KEYS.add(k);kbVec();}
+    return;
+  }
+  if(e.repeat&&['h','j',' ','f'].includes(k))return;  // no auto-repeat for hold/fire
+  switch(k){
+    case 'q':nudgeFocus(-3);break;
+    case 'e':nudgeFocus(+3);break;
+    case 'h':if(!KEYS.has('h')){KEYS.add('h');startHold();}break;
+    case 'j':if(!KEYS.has('j')){KEYS.add('j');startSuc();}break;
+    case ' ':case 'f':e.preventDefault();fireLaser();break;
+    case '.':case '>':pipStep(-1);break;   // advance pipette (tip moves in)
+    case ',':case '<':pipStep(+1);break;   // retract pipette
+    case '+':case '=':chObj(+1);break;
+    case '-':case '_':chObj(-1);break;
+  }
+});
+window.addEventListener('keyup',e=>{
+  const k=e.key.toLowerCase();
+  if(!KEYS.has(k))return;
+  KEYS.delete(k);
+  if(MOVE.includes(k))kbVec();
+  if(k==='h')stopHold();
+  if(k==='j')stopSuc();
+});
+// Allow Enter/Space to activate click-style custom controls when tabbed to.
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  const el=document.activeElement;
+  if(el&&el.getAttribute('role')==='button'&&el.dataset.click==='1'){e.preventDefault();el.click();}
+});
+
+// Label every control for screen readers; make div-buttons focusable.
+function initA11y(){
+  const set=(id,label,role,clickable)=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.setAttribute('aria-label',label);
+    if(role)el.setAttribute('role',role);
+    if(role==='button'&&el.tagName!=='BUTTON'){el.setAttribute('tabindex','0');if(clickable)el.dataset.click='1';}
+  };
+  set('fk','Focus adjustment slider');
+  set('joy','Stage joystick — move embryo with arrow keys','application');
+  set('hPed','Hold pedal — grip embryo, hold H key','button');
+  set('sPed','Suction pedal — aspirate cells, hold J key','button');
+  set('lBtn','Fire laser, Space key','button');
+  set('pipIn','Advance pipette, period key','button',true);
+  set('pipOut','Retract pipette, comma key','button',true);
+  set('objIn','Zoom in','button',true);
+  set('objOut','Zoom out','button',true);
+  set('refBtn','Open technique guide, G key','button',true);
+  set('lt','Laser target — drag onto zona');
+  set('dE','Guided difficulty','button',true);
+  set('dM','Standard difficulty','button',true);
+  set('dH','Expert difficulty','button',true);
+  // Live regions so coaching text is announced
+  const notif=document.getElementById('notif');
+  notif.setAttribute('role','status');notif.setAttribute('aria-live','assertive');
+  const sb=document.getElementById('stepBox');
+  sb.setAttribute('role','status');sb.setAttribute('aria-live','polite');
+}
+
+// ═══════════════════════════════════════
 // BOOT
 // ═══════════════════════════════════════
+initA11y();        // label controls + wire keyboard for assistive tech
 renderMenuRank();  // reflect any stored progress on first paint
 loop();
 </script>
