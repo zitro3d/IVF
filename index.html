@@ -906,6 +906,18 @@ html,body{
 </div>
 
 <script>
+'use strict';
+// ═══════════════════════════════════════
+// DOM ACCESS — memoized element lookup
+// Every control and HUD node is static markup, so we cache the
+// first lookup by id. This replaces ~150 repeated getElementById
+// calls (several per animation frame) with a single map hit.
+// NOTE: dynamically created nodes (the cell-count dots) are held
+// in their own array instead — see cellDots / updateCellDots.
+// ═══════════════════════════════════════
+const _el={};
+function $(id){return _el[id]||(_el[id]=document.getElementById(id));}
+
 // ═══════════════════════════════════════
 // OBJECTIVES
 // ═══════════════════════════════════════
@@ -977,9 +989,9 @@ let S=fresh();
 // ═══════════════════════════════════════
 // CANVAS
 // ═══════════════════════════════════════
-const scope=document.getElementById('scope');
+const scope=$('scope');
 const ctx=scope.getContext('2d');
-const off=document.getElementById('off');
+const off=$('off');
 const oCtx=off.getContext('2d');
 function resize(){scope.width=off.width=window.innerWidth;scope.height=off.height=window.innerHeight;}
 window.addEventListener('resize',resize);
@@ -1468,7 +1480,7 @@ function loop(){
           ltEl.style.left=S.ltX+'px'; ltEl.style.top=S.ltY+'px';
           ltEl.style.display='block'; S.ltOnZona=true;
           ltEl.classList.add('on'); ltEl.classList.remove('icm');
-          document.getElementById('ltLbl').textContent='DRAG ME';
+          $('ltLbl').textContent='DRAG ME';
         }
       } else if(!S.icmOk){S._icmWas=false;}
     }
@@ -1505,7 +1517,7 @@ function loop(){
       S.ltY=ep0.embY+Math.sin(S.ltAngle)*ep0.embR;
       ltEl.style.left=S.ltX+'px'; ltEl.style.top=S.ltY+'px';
       ltEl.style.display='block'; S.ltOnZona=true; ltEl.classList.add('on');
-      document.getElementById('hLaserLine').style.display='block';
+      $('hLaserLine').style.display='block';
     }
     // Keep target locked to zona as embryo drifts (when not dragging)
     if(S.ltOnZona&&!S.ltDrag&&!S.zoneCut&&S.step>=2&&S.step<=3){
@@ -1516,7 +1528,7 @@ function loop(){
     }
 
     // Biopsy reticle
-    const ret=document.getElementById('ret');
+    const ret=$('ret');
     ret.style.left=(hernX/scope.width*100)+'%';ret.style.top=(hernY/scope.height*100)+'%';
     if(S.biopsy>=80)ret.classList.add('lock');else ret.classList.remove('lock');
 
@@ -1526,10 +1538,10 @@ function loop(){
     const icmDeg2=(S.icmAngle*180/Math.PI+360)%360;
     const clockHour=(Math.round((icmDeg2+15)/30))%12||12;
     const icmPos=icmOk?'9 oclock OK':clockHour+' oclock -- rotate to 9';
-    document.getElementById('hIcm').textContent='ICM: '+icmPos;
-    document.getElementById('hIcmLine').className='tb-item'+(icmOk?'':' warn');
+    $('hIcm').textContent='ICM: '+icmPos;
+    $('hIcmLine').className='tb-item'+(icmOk?'':' warn');
     // Update ICM needle on mini dial
-    const needle=document.getElementById('icmNeedle');
+    const needle=$('icmNeedle');
     if(needle){
       const needleR=7;
       const nx=9+Math.cos(S.icmAngle)*needleR;
@@ -1550,7 +1562,7 @@ function loop(){
 
 function updateFocusRing(fS){
   const{embX,embY,embR}=EP();
-  const fr=document.getElementById('focRing');
+  const fr=$('focRing');
   const sz=embR*2.1;
   fr.style.left=embX+'px';fr.style.top=embY+'px';
   fr.style.width=sz+'px';fr.style.height=sz+'px';
@@ -1598,12 +1610,12 @@ function updatePhysics(){
         nextStep();
         notify(`${S.cells} CELLS IN PIPETTE — pull back gently to stretch bridge, then LASER-CUT junctions`,'good');
         // Re-arm laser for junction mode
-        const lb=document.getElementById('lBtn');
+        const lb=$('lBtn');
         lb.className='laser-btn armed';
-        document.getElementById('lSub').textContent='CUT';
-        document.getElementById('lInfo').textContent='fire on bridge';
-        document.getElementById('hLaserLine').style.display='block';
-        document.getElementById('hLaser').textContent='JUNCTION MODE';
+        $('lSub').textContent='CUT';
+        $('lInfo').textContent='fire on bridge';
+        $('hLaserLine').style.display='block';
+        $('hLaser').textContent='JUNCTION MODE';
         ltEl.style.display='block';
         positionLTAtBridge();
         addScore(150);
@@ -1620,17 +1632,17 @@ function updatePhysics(){
 
   // Blastocoel HUD
   const bPct=Math.max(0,100-S.blastoC*100);
-  document.getElementById('bF').style.width=bPct+'%';
+  $('bF').style.width=bPct+'%';
   const bl=S.blastoC>0.65?'COLLAPSED':S.blastoC>0.28?'DEFLATING':'FULL';
-  document.getElementById('bS').textContent=bl;
-  document.getElementById('bF').style.background=S.blastoC>0.65?'var(--r)':S.blastoC>0.28?'var(--o)':'var(--g)';
-  document.getElementById('bS').style.color=S.blastoC>0.65?'rgba(255,61,80,0.7)':S.blastoC>0.28?'rgba(255,170,0,0.7)':'rgba(0,221,114,0.6)';
+  $('bS').textContent=bl;
+  $('bF').style.background=S.blastoC>0.65?'var(--r)':S.blastoC>0.28?'var(--o)':'var(--g)';
+  $('bS').style.color=S.blastoC>0.65?'rgba(255,61,80,0.7)':S.blastoC>0.28?'rgba(255,170,0,0.7)':'rgba(0,221,114,0.6)';
 }
 
 // ═══════════════════════════════════════
 // LASER TARGET
 // ═══════════════════════════════════════
-const ltEl=document.getElementById('lt');
+const ltEl=$('lt');
 ltEl.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();S.ltDrag=true;},{passive:false});
 document.addEventListener('touchmove',e=>{if(!S.ltDrag)return;e.preventDefault();moveLT(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
 document.addEventListener('touchend',e=>{if(!S.ltDrag)return;S.ltDrag=false;snapLT();},{passive:false});
@@ -1671,7 +1683,7 @@ function positionLTAtBridge(){
 // ═══════════════════════════════════════
 // JOYSTICK
 // ═══════════════════════════════════════
-const jEl=document.getElementById('joy'),jkEl=document.getElementById('jk');
+const jEl=$('joy'),jkEl=$('jk');
 let jOrig={x:0,y:0};const jMax=22;
 S.joyActive=false;S.joyX=0;S.joyY=0;
 jEl.addEventListener('touchstart',e=>{e.preventDefault();S.joyActive=true;const r=jEl.getBoundingClientRect();jOrig={x:r.left+r.width/2,y:r.top+r.height/2};},{passive:false});
@@ -1681,10 +1693,10 @@ jEl.addEventListener('touchmove',e=>{e.preventDefault();if(!S.joyActive)return;c
 // ═══════════════════════════════════════
 // HOLD PEDAL
 // ═══════════════════════════════════════
-const hPed=document.getElementById('hPed');
+const hPed=$('hPed');
 let hInt=null;
-function startHold(){if(!S.live)return;haptic(10);S.holdActive=true;S.holdSuc=Math.max(S.holdSuc,5);hPed.classList.add('pressing');hInt=setInterval(()=>{S.holdSuc=Math.min(100,S.holdSuc+3.5);document.getElementById('hPedLbl').textContent=`${Math.round(S.holdSuc)}%`;},60);}
-function stopHold(){S.holdActive=false;hPed.classList.remove('pressing');clearInterval(hInt);const r=setInterval(()=>{S.holdSuc=Math.max(0,S.holdSuc-2.5);document.getElementById('hPedLbl').textContent=S.holdSuc>0?`${Math.round(S.holdSuc)}%`:'HOLD';document.getElementById('hSucPa') && (document.getElementById('hSucPa').textContent=`${Math.round(S.holdSuc*0.5)} Pa`);if(S.holdSuc<=0)clearInterval(r);},80);}
+function startHold(){if(!S.live)return;haptic(10);S.holdActive=true;S.holdSuc=Math.max(S.holdSuc,5);hPed.classList.add('pressing');hInt=setInterval(()=>{S.holdSuc=Math.min(100,S.holdSuc+3.5);$('hPedLbl').textContent=`${Math.round(S.holdSuc)}%`;},60);}
+function stopHold(){S.holdActive=false;hPed.classList.remove('pressing');clearInterval(hInt);const r=setInterval(()=>{S.holdSuc=Math.max(0,S.holdSuc-2.5);$('hPedLbl').textContent=S.holdSuc>0?`${Math.round(S.holdSuc)}%`:'HOLD';$('hSucPa') && ($('hSucPa').textContent=`${Math.round(S.holdSuc*0.5)} Pa`);if(S.holdSuc<=0)clearInterval(r);},80);}
 hPed.addEventListener('touchstart',e=>{e.preventDefault();startHold();},{passive:false});
 hPed.addEventListener('touchend',e=>{e.preventDefault();stopHold();},{passive:false});
 hPed.addEventListener('touchcancel',e=>{e.preventDefault();stopHold();},{passive:false});
@@ -1693,16 +1705,16 @@ hPed.addEventListener('mousedown',startHold);hPed.addEventListener('mouseup',sto
 // ═══════════════════════════════════════
 // BIOPSY SUCTION PEDAL
 // ═══════════════════════════════════════
-const sPed=document.getElementById('sPed');
+const sPed=$('sPed');
 let sInt=null;
 function startSuc(){
   if(!S.live)return;
   if(S.biopsy<72){notify('⚠ Advance pipette (▶) to herniated cells first','warn');addErr('Suction before pipette positioned',5);return;}
   if(!S.zoneCut){notify('⚠ Laser-drill zona first','warn');addErr('Suction before zona cut',8);return;}
   haptic(10);sPed.classList.add('pressing');
-  sInt=setInterval(()=>{S.bioSuc=Math.min(100,S.bioSuc+3);document.getElementById('sPedLbl').textContent=`${Math.round(S.bioSuc)}%`;},60);
+  sInt=setInterval(()=>{S.bioSuc=Math.min(100,S.bioSuc+3);$('sPedLbl').textContent=`${Math.round(S.bioSuc)}%`;},60);
 }
-function stopSuc(){sPed.classList.remove('pressing');clearInterval(sInt);const r=setInterval(()=>{S.bioSuc=Math.max(0,S.bioSuc-2.5);document.getElementById('sPedLbl').textContent=S.bioSuc>0?`${Math.round(S.bioSuc)}%`:'SUCTION';if(S.bioSuc<=0)clearInterval(r);},80);}
+function stopSuc(){sPed.classList.remove('pressing');clearInterval(sInt);const r=setInterval(()=>{S.bioSuc=Math.max(0,S.bioSuc-2.5);$('sPedLbl').textContent=S.bioSuc>0?`${Math.round(S.bioSuc)}%`:'SUCTION';if(S.bioSuc<=0)clearInterval(r);},80);}
 sPed.addEventListener('touchstart',e=>{e.preventDefault();startSuc();},{passive:false});
 sPed.addEventListener('touchend',e=>{e.preventDefault();stopSuc();},{passive:false});
 sPed.addEventListener('touchcancel',e=>{e.preventDefault();stopSuc();},{passive:false});
@@ -1711,7 +1723,7 @@ sPed.addEventListener('mousedown',startSuc);sPed.addEventListener('mouseup',stop
 // ═══════════════════════════════════════
 // LASER
 // ═══════════════════════════════════════
-const lBtn=document.getElementById('lBtn');
+const lBtn=$('lBtn');
 function fireLaser(){
   if(!S.live)return;
   const dc=DC[diff];
@@ -1729,7 +1741,7 @@ function fireLaser(){
     if(S._laserArmed){return;} // already priming
     S._laserArmed=true;
     lBtn.classList.add('firing');
-    document.getElementById('lSub').textContent='⚡';
+    $('lSub').textContent='⚡';
     setTimeout(()=>{
       S._laserArmed=false;
       if(!S.live||S.zoneCut)return;
@@ -1737,19 +1749,19 @@ function fireLaser(){
       flash('white');addScore(45);haptic(35);tapRing(S.ltX,S.ltY,'var(--l)');
       const rem=dc.zP-S.zonePulses;
       lBtn.classList.remove('firing');
-      document.getElementById('lSub').textContent='LASER';
+      $('lSub').textContent='LASER';
       if(rem>0){
         notify(`✦ PULSE ${S.zonePulses}/${dc.zP} — tap again for next pulse`,'ln');
-        document.getElementById('lInfo').textContent=`${rem} more`;
+        $('lInfo').textContent=`${rem} more`;
         lBtn.classList.add('armed');
       } else {
         S.zoneCut=true;
-        lBtn.className='laser-btn done';document.getElementById('lSub').textContent='DONE';
-        document.getElementById('lInfo').textContent='zona open';
+        lBtn.className='laser-btn done';$('lSub').textContent='DONE';
+        $('lInfo').textContent='zona open';
         setTimeout(()=>{
           nextStep();notify('✓ ZONA OPEN — wait for TE cells to herniate','good');
-          document.getElementById('hLaser').textContent='ZONA OPEN ✓';
-          document.getElementById('hLaserLine').style.display='none';
+          $('hLaser').textContent='ZONA OPEN ✓';
+          $('hLaserLine').style.display='none';
           addScore(220);toast('⚡','ZONA BREACHED','Clean cut — excellent');
         },400);
       }
@@ -1762,15 +1774,15 @@ function fireLaser(){
     if(!S.bridgeFormed){notify('⚠ Hold SUCTION longer to stretch cell bridge','warn');return;}
     if(S._laserArmed){return;}
     S._laserArmed=true;
-    lBtn.classList.add('firing');document.getElementById('lSub').textContent='⚡';
+    lBtn.classList.add('firing');$('lSub').textContent='⚡';
     setTimeout(()=>{
       S._laserArmed=false;
       if(!S.live)return;
       S.juncPulses++;S.laserFlash=0.85;flash('white');addScore(65);haptic(35);tapRing(S.ltX,S.ltY,'var(--l)');
-      lBtn.classList.remove('firing');document.getElementById('lSub').textContent='CUT';
+      lBtn.classList.remove('firing');$('lSub').textContent='CUT';
       if(S.juncPulses>=dc.jP){
         S.juncCut=true;S.pullStretch=0;S.pullWarned=false;
-        lBtn.className='laser-btn done';document.getElementById('lSub').textContent='DONE';
+        lBtn.className='laser-btn done';$('lSub').textContent='DONE';
         setTimeout(()=>{
           nextStep();notify('✓ JUNCTIONS CUT — retract pipette ◀ to secure specimen','good');
           addScore(260);toast('🧬','SPECIMEN EXCISED','Junction cut complete');
@@ -1797,11 +1809,11 @@ function chObj(dir){
   const prev=oIdx;
   oIdx=Math.max(0,Math.min(OBJS.length-1,oIdx+dir));
   const obj=OBJS[oIdx];
-  document.getElementById('oDisp').textContent=obj.m+'×';
-  const od3=document.getElementById('oDispFocus');if(od3)od3.textContent=obj.n+' · '+obj.m+'×';
-  document.getElementById('hMag').textContent=obj.m+'×';
-  document.getElementById('hObj').textContent=obj.n;
-  const od2=document.getElementById('oDispFocus');if(od2)od2.textContent=obj.n+' · '+obj.m+'×';
+  $('oDisp').textContent=obj.m+'×';
+  const od3=$('oDispFocus');if(od3)od3.textContent=obj.n+' · '+obj.m+'×';
+  $('hMag').textContent=obj.m+'×';
+  $('hObj').textContent=obj.n;
+  const od2=$('oDispFocus');if(od2)od2.textContent=obj.n+' · '+obj.m+'×';
   const bMicrons=Math.round(100*(200/obj.m));
   // Only shift focus and notify if actually changed during a live session
   if(oIdx===prev||!S.live)return;
@@ -1809,7 +1821,7 @@ function chObj(dir){
   const shift=16+Math.random()*24;
   const d2=Math.random()>0.5?1:-1;
   const nF=Math.max(3,Math.min(97,S.focus+d2*shift));
-  document.getElementById('fk').value=nF;
+  $('fk').value=nF;
   S.focus=nF;
   S.focusLocked=false; // must re-focus on new lens
   notify(obj.n+' — refocus required ('+['WD 30mm','WD 10mm','WD 4.7mm','WD 2.1mm'][oIdx]+')','warn');
@@ -1854,7 +1866,7 @@ function pipStep(dir){
 // Hold to advance/retract continuously
 // Pipette touch handlers — advance = pipIn (▶), retract = pipOut (◀)
 function bindPipBtn(id,dir){
-  const el=document.getElementById(id);
+  const el=$(id);
   if(!el)return;
   el.addEventListener('touchstart',e=>{e.preventDefault();popBtn(el);haptic(8);pipCont(dir);},{passive:false});
   el.addEventListener('touchend',e=>{e.preventDefault();clearInterval(pipInt);},{passive:false});
@@ -1870,8 +1882,8 @@ function pipCont(dir){clearInterval(pipInt);pipStep(dir);pipInt=setInterval(()=>
 function updatePipHUD(){
   const v=S.biopsy;
   const ls=['RET','ADV','ADV','POS','TARGET'];
-  document.getElementById('pipV').textContent=ls[Math.min(4,Math.floor(v/22))];
-  const ret=document.getElementById('ret');
+  $('pipV').textContent=ls[Math.min(4,Math.floor(v/22))];
+  const ret=$('ret');
   if(S.step>4)ret.style.display='block';
   if(v>=80)ret.classList.add('lock');else ret.classList.remove('lock');
 }
@@ -1881,44 +1893,50 @@ function updatePipHUD(){
 // ═══════════════════════════════════════
 function updateFocusHUD(fS){
   const pct=Math.round(fS*100);
-  document.getElementById('fbF').style.width=pct+'%';
+  $('fbF').style.width=pct+'%';
   let c,t;
   if(fS>0.82){c='var(--g)';t='SHARP ✓';}
   else if(fS>0.42){c='var(--o)';t='FOCUSING';}
   else{c='var(--r)';t='BLURRED';}
-  document.getElementById('fbF').style.background=c;
-  document.getElementById('fbS').textContent=t;
-  document.getElementById('fbS').style.color=c;
-  document.getElementById('fv').textContent=`${((S.focus/100-OBJS[oIdx].fOpt)*10).toFixed(1)}μm`;
+  $('fbF').style.background=c;
+  $('fbS').textContent=t;
+  $('fbS').style.color=c;
+  $('fv').textContent=`${((S.focus/100-OBJS[oIdx].fOpt)*10).toFixed(1)}μm`;
   const opt=OBJS[oIdx].fOpt,zW=10;
-  document.getElementById('fbZ').style.left=`${Math.max(0,opt*100-zW/2)}%`;
-  document.getElementById('fbZ').style.width=`${zW}%`;
+  $('fbZ').style.left=`${Math.max(0,opt*100-zW/2)}%`;
+  $('fbZ').style.width=`${zW}%`;
 }
 
 function updateTempHUD(){
   const t=S.temp,pct=(t-35)/(37-35)*100;
-  document.getElementById('tF').style.width=`${Math.max(0,Math.min(100,pct))}%`;
+  $('tF').style.width=`${Math.max(0,Math.min(100,pct))}%`;
   const c=t>=37?'var(--g)':t>36.2?'var(--o)':'var(--r)';
-  document.getElementById('tF').style.background=c;
-  document.getElementById('tV').textContent=`${t.toFixed(1)}°C${t>=37?' ✓':' ↑'}`;
-  document.getElementById('tV').style.color=c;
-  document.getElementById('hTemp').textContent=`${t.toFixed(1)}°C`;
-  document.getElementById('hTemp').style.color=c;
+  $('tF').style.background=c;
+  $('tV').textContent=`${t.toFixed(1)}°C${t>=37?' ✓':' ↑'}`;
+  $('tV').style.color=c;
+  $('hTemp').textContent=`${t.toFixed(1)}°C`;
+  $('hTemp').style.color=c;
 }
 
-function updateCellDots(){
-  const box=document.getElementById('cellStrip');
-  if(!box.children.length){
-    box.classList.add('show');
-    for(let i=0;i<8;i++){const d=document.createElement('div');d.className='cdot';d.id=`cd${i}`;box.appendChild(d);}
-  }
+// The 8 cell-count dots are the only generated DOM. We keep the
+// created nodes in `cellDots` rather than re-querying by id, which
+// also keeps the memoized $() cache free of transient nodes.
+let cellDots=[];
+function buildCellDots(){
+  const box=$('cellStrip');
+  box.innerHTML='';cellDots=[];
   for(let i=0;i<8;i++){
-    const d=document.getElementById(`cd${i}`);
-    if(!d)continue;
-    if(i<S.cells)d.className='cdot full';
-    else if(i===S.cells&&S.step>=5)d.className='cdot next';
-    else d.className='cdot';
+    const d=document.createElement('div');d.className='cdot';
+    box.appendChild(d);cellDots.push(d);
   }
+}
+function updateCellDots(){
+  if(!cellDots.length){$('cellStrip').classList.add('show');buildCellDots();}
+  cellDots.forEach((d,i)=>{
+    if(i<S.cells)d.className='cdot full';            // aspirated
+    else if(i===S.cells&&S.step>=5)d.className='cdot next'; // next target
+    else d.className='cdot';                          // empty
+  });
 }
 
 // ═══════════════════════════════════════
@@ -1937,7 +1955,7 @@ const PHASES=[
 const PCLS=['','warn','warn','laser','warn','','laser','good'];
 function nextStep(){
   S.step++;
-  const sb=document.getElementById('stepBox');
+  const sb=$('stepBox');
   sb.textContent=PHASES[S.step]||'PROCEDURE COMPLETE';
   sb.className=PCLS[S.step]||'';
   sb.classList.add('pulse');setTimeout(()=>sb.classList.remove('pulse'),400);
@@ -1945,8 +1963,8 @@ function nextStep(){
   haptic(18);  // gentle confirmation buzz on advancing a step
   // Keep the reference panel current; nudge the GUIDE tab so trainees
   // learn it follows along with each new step.
-  if(document.getElementById('refPanel').classList.contains('show'))renderRef();
-  const rb=document.getElementById('refBtn');
+  if($('refPanel').classList.contains('show'))renderRef();
+  const rb=$('refBtn');
   rb.classList.remove('hl');void rb.offsetWidth;rb.classList.add('hl');
 }
 // Paint the 7-segment tracker: completed steps green, current amber.
@@ -1987,24 +2005,24 @@ const GLOSSARY=[
 function renderRef(){
   const step=Math.max(1,Math.min(7,S.step||1));
   const tech=TECHNIQUE[step];
-  document.getElementById('rpNowT').textContent=tech.t;
-  document.getElementById('rpNowD').textContent=tech.d;
-  document.getElementById('rpNowTgt').textContent=tech.tgt;
+  $('rpNowT').textContent=tech.t;
+  $('rpNowD').textContent=tech.d;
+  $('rpNowTgt').textContent=tech.tgt;
   // Full protocol with done/current state mirroring the live tracker
-  document.getElementById('rpProto').innerHTML=TECHNIQUE.slice(1).map((tc,i)=>{
+  $('rpProto').innerHTML=TECHNIQUE.slice(1).map((tc,i)=>{
     const n=i+1,cls=n<S.step?'done':n===S.step?'cur':'';
     return `<div class="rp-step ${cls}"><div class="rp-n">${n<S.step?'✓':n}</div><div><b>${tc.t.split('·')[1].trim()}</b> — ${tc.tgt.replace('TARGET · ','')}</div></div>`;
   }).join('');
   // Glossary (rendered once is fine, but cheap to refresh)
-  document.getElementById('rpGloss').innerHTML=GLOSSARY.map(([term,def])=>
+  $('rpGloss').innerHTML=GLOSSARY.map(([term,def])=>
     `<div class="rp-term"><div class="rp-term-h">${term}</div><div class="rp-term-d">${def}</div></div>`).join('');
 }
 function openRef(){
   renderRef();
-  document.getElementById('refPanel').classList.add('show');
+  $('refPanel').classList.add('show');
 }
 function closeRef(){
-  document.getElementById('refPanel').classList.remove('show');
+  $('refPanel').classList.remove('show');
 }
 
 // ═══════════════════════════════════════
@@ -2020,7 +2038,7 @@ function addErr(msg,pen){
   updateErrHUD();
 }
 function updateErrHUD(){
-  const line=document.getElementById('hErrLine'),val=document.getElementById('hErr');
+  const line=$('hErrLine'),val=$('hErr');
   line.style.display='flex';
   val.textContent=S.errors.length;
   val.style.color=S.errors.length?'var(--r)':'var(--o)';
@@ -2058,10 +2076,10 @@ function rankFor(xp){
 // Paint the rank panel on the start menu from stored progress.
 function renderMenuRank(){
   const r=rankFor(PROG.xp);
-  document.getElementById('mrTier').textContent=r.cur.n;
-  document.getElementById('mrStat').textContent=`${PROG.xp} XP · ${PROG.sessions} run${PROG.sessions===1?'':'s'}`;
-  document.getElementById('mrFill').style.width=r.pct+'%';
-  document.getElementById('mrNext').textContent=r.next
+  $('mrTier').textContent=r.cur.n;
+  $('mrStat').textContent=`${PROG.xp} XP · ${PROG.sessions} run${PROG.sessions===1?'':'s'}`;
+  $('mrFill').style.width=r.pct+'%';
+  $('mrNext').textContent=r.next
     ? `${r.next.xp-PROG.xp} XP to ${r.next.n}`
     : 'Top rank reached — ' + r.cur.note;
 }
@@ -2070,21 +2088,21 @@ function renderMenuRank(){
 // UI HELPERS
 // ═══════════════════════════════════════
 function notify(msg,type=''){
-  const el=document.getElementById('notif');
+  const el=$('notif');
   el.textContent=msg;el.className='notif show'+(type?' '+type:'');
   if(S.notifT)clearTimeout(S.notifT);
   S.notifT=setTimeout(()=>el.classList.remove('show'),3800);
 }
 function toast(icon,title,sub){
-  document.getElementById('tIcon').textContent=icon;
-  document.getElementById('tTitle').textContent=title;
-  document.getElementById('tSub').textContent=sub;
-  const t=document.getElementById('toast');t.classList.add('show');
+  $('tIcon').textContent=icon;
+  $('tTitle').textContent=title;
+  $('tSub').textContent=sub;
+  const t=$('toast');t.classList.add('show');
   if(S.toastT)clearTimeout(S.toastT);
   S.toastT=setTimeout(()=>t.classList.remove('show'),2200);
 }
 function flash(type){
-  const f=document.getElementById('flash');
+  const f=$('flash');
   f.style.background=type==='red'?'rgba(255,40,0,0.14)':'rgba(255,240,200,0.16)';
   f.style.opacity='1';setTimeout(()=>f.style.opacity='0',type==='red'?180:110);
 }
@@ -2098,7 +2116,7 @@ function haptic(p){try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
 
 // Knock the microscope image briefly — used for errors/impacts.
 function shake(){
-  const s=document.getElementById('scope');
+  const s=$('scope');
   s.classList.remove('shake');void s.offsetWidth;s.classList.add('shake');
 }
 
@@ -2134,28 +2152,28 @@ function showDebrief(){
   const gradeCol=grand>=80?'var(--g)':grand>=65?'var(--o)':'var(--r)';
   const subs={'A+':'Outstanding. Embryo intact. Specimen ready for PGT.','A':'Excellent. Minor deviations. Viable result.','B':'Good. Review ICM positioning and suction timing.','C':'Acceptable. Practice laser accuracy.','D':'Significant errors. Repeat before clinical work.'};
 
-  document.getElementById('dStars').textContent='★'.repeat(stars)+'☆'.repeat(5-stars);
-  document.getElementById('dStars').style.color=grade==='A+'?'var(--o)':'var(--g)';
-  document.getElementById('dGrade').textContent=`${grade} · ${grand}`;
-  document.getElementById('dGrade').style.color=gradeCol;
-  document.getElementById('dSub').textContent=subs[grade];
+  $('dStars').textContent='★'.repeat(stars)+'☆'.repeat(5-stars);
+  $('dStars').style.color=grade==='A+'?'var(--o)':'var(--g)';
+  $('dGrade').textContent=`${grade} · ${grand}`;
+  $('dGrade').style.color=gradeCol;
+  $('dSub').textContent=subs[grade];
 
   const vals=[focSc,icmSc,lasSc,celSc,blaSc,S.penalties];
   for(let i=0;i<6;i++){
-    document.getElementById(`dv${i+1}`).textContent=i<5?vals[i]+'%':vals[i];
+    $(`dv${i+1}`).textContent=i<5?vals[i]+'%':vals[i];
     const v=i<5?vals[i]:Math.max(0,100-vals[i]*3);
-    document.getElementById(`dc${i+1}`).className='d-card'+(v>=80?'':v>=60?' w':' a');
+    $(`dc${i+1}`).className='d-card'+(v>=80?'':v>=60?' w':' a');
   }
 
-  const el=document.getElementById('dErrs');
+  const el=$('dErrs');
   el.innerHTML=S.errors.length
     ?S.errors.map(e=>`<div class="d-err">${e}</div>`).join('')
     :'<div class="d-ok">✓ No errors recorded</div>';
 
   // ── SESSION STATS & PROGRESSION ───────────────────────
   const mins=Math.floor(S.elapsed/60),secs=S.elapsed%60;
-  document.getElementById('dsTime').textContent=`${mins}:${secs<10?'0':''}${secs}`;
-  document.getElementById('dsPts').textContent=S.score;
+  $('dsTime').textContent=`${mins}:${secs<10?'0':''}${secs}`;
+  $('dsPts').textContent=S.score;
 
   // Promote: capture rank before awarding XP so we can detect a tier-up.
   const rankBefore=rankFor(PROG.xp).idx;
@@ -2168,15 +2186,15 @@ function showDebrief(){
   const rankAfter=rankFor(PROG.xp);
   const rankedUp=rankAfter.idx>rankBefore;
 
-  document.getElementById('dsBest').textContent=(PROG.best[diff]||grand)+'';
-  document.getElementById('dNewBest').style.display=newBest?'inline-block':'none';
+  $('dsBest').textContent=(PROG.best[diff]||grand)+'';
+  $('dNewBest').style.display=newBest?'inline-block':'none';
 
-  const badge=document.getElementById('dRankBadge');
+  const badge=$('dRankBadge');
   badge.textContent=rankedUp?'▲ '+rankAfter.cur.n:rankAfter.cur.n;
   badge.className='d-rankbadge'+(rankedUp?' up':'');
 
-  document.getElementById('dXpFill').style.width=rankAfter.pct+'%';
-  document.getElementById('dXpLbl').textContent=rankAfter.next
+  $('dXpFill').style.width=rankAfter.pct+'%';
+  $('dXpLbl').textContent=rankAfter.next
     ? `+${grand} XP  ·  ${rankAfter.next.xp-PROG.xp} XP to ${rankAfter.next.n}`
     : `+${grand} XP  ·  Top rank — ${rankAfter.cur.n}`;
 
@@ -2186,10 +2204,10 @@ function showDebrief(){
     haptic([0,30,40,30,40,60]);
   }
 
-  document.getElementById('refBtn').style.display='none';
+  $('refBtn').style.display='none';
   closeRef();
-  document.getElementById('mOv').style.display='none';
-  document.getElementById('dOv').style.display='flex';
+  $('mOv').style.display='none';
+  $('dOv').style.display='flex';
 }
 
 // ═══════════════════════════════════════
@@ -2197,21 +2215,21 @@ function showDebrief(){
 // ═══════════════════════════════════════
 function setDiff(d){
   diff=d;
-  ['e','m','h'].forEach(k=>document.getElementById('d'+k.toUpperCase()).classList.toggle('sel',k===d));
+  ['e','m','h'].forEach(k=>$('d'+k.toUpperCase()).classList.toggle('sel',k===d));
 }
 
 let firstSession=true;
 function beginSession(){
-  document.getElementById('mOv').style.display='none';
-  if(firstSession){firstSession=false;document.getElementById('controlHint').style.display='flex';}
+  $('mOv').style.display='none';
+  if(firstSession){firstSession=false;$('controlHint').style.display='flex';}
   else startSim();
 }
-function dismissHint(){document.getElementById('controlHint').style.display='none';startSim();}
+function dismissHint(){$('controlHint').style.display='none';startSim();}
 
 function startSim(){
-  document.getElementById('mOv').style.display='none';
-  document.getElementById('dOv').style.display='none';
-  document.getElementById('controlHint').style.display='none';
+  $('mOv').style.display='none';
+  $('dOv').style.display='none';
+  $('controlHint').style.display='none';
 
   S=fresh();S.live=true;S.startT=Date.now();S.step=1;
   S.focus=38; // start slightly out of focus — embryo visible but needs fine adjustment
@@ -2219,45 +2237,45 @@ function startSim(){
   S.joyActive=false;S.joyX=0;S.joyY=0;
 
   // Show UI
-  document.getElementById('cp').style.display='block';
-  document.getElementById('focBar').classList.add('show');
-  document.getElementById('blastoBar').classList.add('show');
-  document.getElementById('tempBadge').classList.add('show');
+  $('cp').style.display='block';
+  $('focBar').classList.add('show');
+  $('blastoBar').classList.add('show');
+  $('tempBadge').classList.add('show');
 
   // Reset controls
-  document.getElementById('fk').value=38;
-  document.getElementById('hPedLbl').textContent='HOLD';
-  document.getElementById('sPedLbl').textContent='SUCTION';
-  document.getElementById('lBtn').className='laser-btn armed';
-  document.getElementById('lSub').textContent='LASER';
-  document.getElementById('lInfo').textContent='position first';
-  document.getElementById('hLaserLine').style.display='block';
-  document.getElementById('hLaser').textContent='LASER ARMED';
-  document.getElementById('hLaserLine').style.color='';
-  document.getElementById('pipV').textContent='RET';
-  document.getElementById('ret').style.display='none';
-  document.getElementById('ret').classList.remove('lock');
+  $('fk').value=38;
+  $('hPedLbl').textContent='HOLD';
+  $('sPedLbl').textContent='SUCTION';
+  $('lBtn').className='laser-btn armed';
+  $('lSub').textContent='LASER';
+  $('lInfo').textContent='position first';
+  $('hLaserLine').style.display='block';
+  $('hLaser').textContent='LASER ARMED';
+  $('hLaserLine').style.color='';
+  $('pipV').textContent='RET';
+  $('ret').style.display='none';
+  $('ret').classList.remove('lock');
   ltEl.style.display='none';ltEl.classList.remove('on','icm');
-  document.getElementById('cellStrip').classList.remove('show');
-  document.getElementById('cellStrip').innerHTML='';
-  document.getElementById('toast').classList.remove('show');
-  document.getElementById('stepBox').textContent=PHASES[1];
-  document.getElementById('stepBox').className='warn';
+  $('cellStrip').classList.remove('show');
+  $('cellStrip').innerHTML='';cellDots=[];
+  $('toast').classList.remove('show');
+  $('stepBox').textContent=PHASES[1];
+  $('stepBox').className='warn';
   // Step tracker + error tally
-  document.getElementById('stepTrack').classList.add('show');
+  $('stepTrack').classList.add('show');
   updateStepTrack();
-  document.getElementById('hErrLine').style.display='none';
-  document.getElementById('hErr').textContent='0';
+  $('hErrLine').style.display='none';
+  $('hErr').textContent='0';
   // Technique reference tab
-  document.getElementById('refBtn').style.display='flex';
+  $('refBtn').style.display='flex';
   closeRef();
 
   // Refresh objective display
   const obj=OBJS[oIdx];
-  document.getElementById('hMag').textContent=obj.m+'×';
-  document.getElementById('hObj').textContent=obj.n;
-  document.getElementById('oDisp').textContent=obj.m+'×';
-  const od3=document.getElementById('oDispFocus');if(od3)od3.textContent=obj.n+' · '+obj.m+'×';
+  $('hMag').textContent=obj.m+'×';
+  $('hObj').textContent=obj.n;
+  $('oDisp').textContent=obj.m+'×';
+  const od3=$('oDispFocus');if(od3)od3.textContent=obj.n+' · '+obj.m+'×';
 
   notify('STEP 1 — Wait for 37°C · Fine-tune FOCUS until zona is sharp','warn');
   onFocus(38);
@@ -2265,22 +2283,22 @@ function startSim(){
 
 function toMenu(){
   S.live=false;
-  document.getElementById('dOv').style.display='none';
-  document.getElementById('cp').style.display='none';
-  document.getElementById('focBar').classList.remove('show');
-  document.getElementById('blastoBar').classList.remove('show');
-  document.getElementById('tempBadge').classList.remove('show');
-  document.getElementById('stepTrack').classList.remove('show');
-  document.getElementById('refBtn').style.display='none';
+  $('dOv').style.display='none';
+  $('cp').style.display='none';
+  $('focBar').classList.remove('show');
+  $('blastoBar').classList.remove('show');
+  $('tempBadge').classList.remove('show');
+  $('stepTrack').classList.remove('show');
+  $('refBtn').style.display='none';
   closeRef();
-  document.getElementById('mOv').style.display='flex';
+  $('mOv').style.display='flex';
 }
 
 function onFocus(v){
   S.focus=v;
   if(!S.live)return;
   const d=((v/100-OBJS[oIdx].fOpt)*10).toFixed(1);
-  document.getElementById('fv').textContent=`${d>0?'+':''}${d}μm`;
+  $('fv').textContent=`${d>0?'+':''}${d}μm`;
 }
 
 // ═══════════════════════════════════════
@@ -2301,11 +2319,11 @@ function kbVec(){
   if(KEYS.has('arrowdown')||KEYS.has('s'))y+=1;
   const mag=Math.hypot(x,y)||1;
   S.joyX=x/mag;S.joyY=y/mag;S.joyActive=!!(x||y);
-  const jk=document.getElementById('jk');
+  const jk=$('jk');
   jk.style.left=(50+S.joyX*40)+'%';jk.style.top=(50+S.joyY*40)+'%';
 }
 function nudgeFocus(d){
-  const fk=document.getElementById('fk');
+  const fk=$('fk');
   const v=Math.max(0,Math.min(100,(+fk.value)+d));
   fk.value=v;onFocus(v);
 }
@@ -2313,7 +2331,7 @@ window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();
   // Panel toggles work regardless of session state
   if(k==='escape'){closeRef();return;}
-  if(k==='g'){const p=document.getElementById('refPanel');p.classList.contains('show')?closeRef():(S.live&&openRef());return;}
+  if(k==='g'){const p=$('refPanel');p.classList.contains('show')?closeRef():(S.live&&openRef());return;}
   if(!S.live)return;
   // Let the focus slider keep native arrow behaviour when it's focused
   const onSlider=document.activeElement&&document.activeElement.id==='fk';
@@ -2354,7 +2372,7 @@ document.addEventListener('keydown',e=>{
 // Label every control for screen readers; make div-buttons focusable.
 function initA11y(){
   const set=(id,label,role,clickable)=>{
-    const el=document.getElementById(id);if(!el)return;
+    const el=$(id);if(!el)return;
     el.setAttribute('aria-label',label);
     if(role)el.setAttribute('role',role);
     if(role==='button'&&el.tagName!=='BUTTON'){el.setAttribute('tabindex','0');if(clickable)el.dataset.click='1';}
@@ -2374,9 +2392,9 @@ function initA11y(){
   set('dM','Standard difficulty','button',true);
   set('dH','Expert difficulty','button',true);
   // Live regions so coaching text is announced
-  const notif=document.getElementById('notif');
+  const notif=$('notif');
   notif.setAttribute('role','status');notif.setAttribute('aria-live','assertive');
-  const sb=document.getElementById('stepBox');
+  const sb=$('stepBox');
   sb.setAttribute('role','status');sb.setAttribute('aria-live','polite');
 }
 
