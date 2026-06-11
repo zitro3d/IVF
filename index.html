@@ -68,6 +68,8 @@ html,body{
 .tb-item.warn b{color:var(--o);}
 .tb-item.alert b{color:var(--r);}
 .tb-item.laser b{color:var(--l);}
+.tb-item.pulse{animation:tbPulse .5s ease-out;}
+@keyframes tbPulse{0%{transform:scale(1);}30%{transform:scale(1.22);filter:brightness(1.6);}100%{transform:scale(1);}}
 
 /* ── STEP INSTRUCTION ── */
 #stepBox{
@@ -94,6 +96,40 @@ html,body{
 #stepBox.warn{border-color:var(--o-dim);color:var(--o);box-shadow:0 4px 18px rgba(0,0,0,0.5),0 0 14px rgba(255,176,32,0.15);}
 #stepBox.pulse{animation:sbPulse 0.4s ease-out;}
 @keyframes sbPulse{0%{transform:translateX(-50%) scale(1.04);}100%{transform:translateX(-50%) scale(1);}}
+
+/* ── STEP PROGRESS TRACKER (7 segments under the step box) ── */
+#stepTrack{
+  position:fixed;
+  top:max(76px,calc(env(safe-area-inset-top,0px)+64px));
+  left:50%;transform:translateX(-50%);
+  z-index:8;pointer-events:none;
+  display:flex;gap:5px;align-items:center;
+  opacity:0;transition:opacity .4s var(--ease);
+}
+#stepTrack.show{opacity:1;}
+.st-seg{
+  width:17px;height:3px;border-radius:2px;
+  background:rgba(255,255,255,0.09);
+  transition:background .35s var(--ease),box-shadow .35s var(--ease),transform .35s var(--ease-snap);
+}
+.st-seg.done{background:var(--g);box-shadow:0 0 6px rgba(0,232,122,0.45);}
+.st-seg.cur{background:var(--o);box-shadow:0 0 9px rgba(255,176,32,0.6);transform:scaleY(1.5);animation:stCur 1.3s ease-in-out infinite;}
+@keyframes stCur{0%,100%{opacity:0.55;}50%{opacity:1;}}
+
+/* ── SCREEN-SHAKE — tactile error impact on the scope image ── */
+@keyframes shakeX{
+  10%,90%{transform:translateX(-2px);}
+  20%,80%{transform:translateX(3px);}
+  30%,50%,70%{transform:translate(-5px,1px);}
+  40%,60%{transform:translate(5px,-1px);}
+}
+#scope.shake{animation:shakeX 0.4s linear;}
+
+/* ── BUTTON TAP-POP — discrete-action confirmation pulse ── */
+@keyframes tapPop{0%{transform:scale(0.92);}60%{transform:scale(1.06);}100%{transform:scale(1);}}
+.tap-pop{animation:tapPop 0.22s var(--ease-snap);}
+@keyframes ringPing{0%{transform:translate(-50%,-50%) scale(0.6);opacity:0.7;}100%{transform:translate(-50%,-50%) scale(2.4);opacity:0;}}
+.tap-ring{position:fixed;width:46px;height:46px;border-radius:50%;border:2px solid currentColor;pointer-events:none;z-index:9;animation:ringPing 0.5s var(--ease) forwards;}
 
 /* ── FOCUS RING indicator (around embryo center) ── */
 #focRing{
@@ -488,11 +524,19 @@ html,body{
   <div class="tb-right">
     <div class="tb-item alert"><b id="hTemp" style="color:var(--r)">35.8°C</b></div>
     <div class="tb-item laser" id="hLaserLine" style="display:none"><b id="hLaser">LASER</b></div>
+    <div class="tb-item" id="hErrLine" style="display:none">ERRORS <b id="hErr" style="color:var(--o)">0</b></div>
   </div>
 </div>
 
 <!-- STEP INSTRUCTION -->
 <div id="stepBox">IVF BIOPSY SIMULATOR</div>
+
+<!-- STEP PROGRESS TRACKER (7 procedure steps) -->
+<div id="stepTrack" aria-hidden="true">
+  <div class="st-seg"></div><div class="st-seg"></div><div class="st-seg"></div>
+  <div class="st-seg"></div><div class="st-seg"></div><div class="st-seg"></div>
+  <div class="st-seg"></div>
+</div>
 
 <!-- FOCUS BAR -->
 <div id="focBar">
@@ -600,7 +644,7 @@ html,body{
       <!-- Pipette arrows directly below, same width -->
       <div style="display:flex;gap:0;align-items:center;width:108px;justify-content:space-between;">
         <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
-          <div class="pip-btn" id="pipOut" onclick="pipStep(+1)" style="width:40px;height:32px;font-size:16px;border-color:rgba(255,61,80,0.3);color:var(--r);border-radius:4px;">◀</div>
+          <div class="pip-btn" id="pipOut" style="width:40px;height:32px;font-size:16px;border-color:rgba(255,61,80,0.3);color:var(--r);border-radius:4px;">◀</div>
           <div style="font-size:6px;letter-spacing:1px;color:rgba(255,61,80,0.35);">OUT</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
@@ -608,7 +652,7 @@ html,body{
           <div style="font-size:5px;letter-spacing:1px;color:rgba(255,61,80,0.28);">PIP</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
-          <div class="pip-btn" id="pipIn" onclick="pipStep(-1)" style="width:40px;height:32px;font-size:16px;border-color:rgba(255,61,80,0.3);color:var(--r);border-radius:4px;">▶</div>
+          <div class="pip-btn" id="pipIn" style="width:40px;height:32px;font-size:16px;border-color:rgba(255,61,80,0.3);color:var(--r);border-radius:4px;">▶</div>
           <div style="font-size:6px;letter-spacing:1px;color:rgba(255,61,80,0.35);">IN</div>
         </div>
       </div>
@@ -1466,7 +1510,7 @@ jEl.addEventListener('touchmove',e=>{e.preventDefault();if(!S.joyActive)return;c
 // ═══════════════════════════════════════
 const hPed=document.getElementById('hPed');
 let hInt=null;
-function startHold(){if(!S.live)return;S.holdActive=true;S.holdSuc=Math.max(S.holdSuc,5);hPed.classList.add('pressing');hInt=setInterval(()=>{S.holdSuc=Math.min(100,S.holdSuc+3.5);document.getElementById('hPedLbl').textContent=`${Math.round(S.holdSuc)}%`;},60);}
+function startHold(){if(!S.live)return;haptic(10);S.holdActive=true;S.holdSuc=Math.max(S.holdSuc,5);hPed.classList.add('pressing');hInt=setInterval(()=>{S.holdSuc=Math.min(100,S.holdSuc+3.5);document.getElementById('hPedLbl').textContent=`${Math.round(S.holdSuc)}%`;},60);}
 function stopHold(){S.holdActive=false;hPed.classList.remove('pressing');clearInterval(hInt);const r=setInterval(()=>{S.holdSuc=Math.max(0,S.holdSuc-2.5);document.getElementById('hPedLbl').textContent=S.holdSuc>0?`${Math.round(S.holdSuc)}%`:'HOLD';document.getElementById('hSucPa') && (document.getElementById('hSucPa').textContent=`${Math.round(S.holdSuc*0.5)} Pa`);if(S.holdSuc<=0)clearInterval(r);},80);}
 hPed.addEventListener('touchstart',e=>{e.preventDefault();startHold();},{passive:false});
 hPed.addEventListener('touchend',e=>{e.preventDefault();stopHold();},{passive:false});
@@ -1482,7 +1526,7 @@ function startSuc(){
   if(!S.live)return;
   if(S.biopsy<72){notify('⚠ Advance pipette (▶) to herniated cells first','warn');addErr('Suction before pipette positioned',5);return;}
   if(!S.zoneCut){notify('⚠ Laser-drill zona first','warn');addErr('Suction before zona cut',8);return;}
-  sPed.classList.add('pressing');
+  haptic(10);sPed.classList.add('pressing');
   sInt=setInterval(()=>{S.bioSuc=Math.min(100,S.bioSuc+3);document.getElementById('sPedLbl').textContent=`${Math.round(S.bioSuc)}%`;},60);
 }
 function stopSuc(){sPed.classList.remove('pressing');clearInterval(sInt);const r=setInterval(()=>{S.bioSuc=Math.max(0,S.bioSuc-2.5);document.getElementById('sPedLbl').textContent=S.bioSuc>0?`${Math.round(S.bioSuc)}%`:'SUCTION';if(S.bioSuc<=0)clearInterval(r);},80);}
@@ -1517,7 +1561,7 @@ function fireLaser(){
       S._laserArmed=false;
       if(!S.live||S.zoneCut)return;
       S.zonePulses++;S.laserFlash=1;S.zoneCutAngle=S.ltAngle;
-      flash('white');addScore(45);
+      flash('white');addScore(45);haptic(35);tapRing(S.ltX,S.ltY,'var(--l)');
       const rem=dc.zP-S.zonePulses;
       lBtn.classList.remove('firing');
       document.getElementById('lSub').textContent='LASER';
@@ -1549,7 +1593,7 @@ function fireLaser(){
     setTimeout(()=>{
       S._laserArmed=false;
       if(!S.live)return;
-      S.juncPulses++;S.laserFlash=0.85;flash('white');addScore(65);
+      S.juncPulses++;S.laserFlash=0.85;flash('white');addScore(65);haptic(35);tapRing(S.ltX,S.ltY,'var(--l)');
       lBtn.classList.remove('firing');document.getElementById('lSub').textContent='CUT';
       if(S.juncPulses>=dc.jP){
         S.juncCut=true;S.pullStretch=0;S.pullWarned=false;
@@ -1639,9 +1683,12 @@ function pipStep(dir){
 function bindPipBtn(id,dir){
   const el=document.getElementById(id);
   if(!el)return;
-  el.addEventListener('touchstart',e=>{e.preventDefault();pipCont(dir);},{passive:false});
+  el.addEventListener('touchstart',e=>{e.preventDefault();popBtn(el);haptic(8);pipCont(dir);},{passive:false});
   el.addEventListener('touchend',e=>{e.preventDefault();clearInterval(pipInt);},{passive:false});
   el.addEventListener('touchcancel',e=>{e.preventDefault();clearInterval(pipInt);},{passive:false});
+  el.addEventListener('mousedown',e=>{popBtn(el);pipCont(dir);});
+  el.addEventListener('mouseup',()=>clearInterval(pipInt));
+  el.addEventListener('mouseleave',()=>clearInterval(pipInt));
 }
 bindPipBtn('pipIn',-1);   // ▶ = advance = decrease biopsy value (tip moves right)
 bindPipBtn('pipOut',+1);  // ◀ = retract = increase biopsy value (tip moves left)
@@ -1721,13 +1768,38 @@ function nextStep(){
   sb.textContent=PHASES[S.step]||'PROCEDURE COMPLETE';
   sb.className=PCLS[S.step]||'';
   sb.classList.add('pulse');setTimeout(()=>sb.classList.remove('pulse'),400);
+  updateStepTrack();
+  haptic(18);  // gentle confirmation buzz on advancing a step
+}
+// Paint the 7-segment tracker: completed steps green, current amber.
+function updateStepTrack(){
+  const segs=document.querySelectorAll('#stepTrack .st-seg');
+  segs.forEach((seg,i)=>{
+    const n=i+1;                       // segment 1..7 maps to step 1..7
+    seg.className='st-seg'+(n<S.step?' done':n===S.step?' cur':'');
+  });
 }
 
 // ═══════════════════════════════════════
 // SCORING
 // ═══════════════════════════════════════
 function addScore(n){S.score+=n;}
-function addErr(msg,pen){S.penalties+=pen;if(!S.errSet.has(msg)){S.errSet.add(msg);S.errors.push(msg);}flash('red');}
+// Record a distinct error, apply its penalty, and fire the full
+// error-feedback stack: red flash + screen-shake + buzz + HUD tally.
+function addErr(msg,pen){
+  S.penalties+=pen;
+  if(!S.errSet.has(msg)){S.errSet.add(msg);S.errors.push(msg);}
+  flash('red');shake();haptic([0,40,30,40]);
+  updateErrHUD();
+}
+function updateErrHUD(){
+  const line=document.getElementById('hErrLine'),val=document.getElementById('hErr');
+  line.style.display='flex';
+  val.textContent=S.errors.length;
+  val.style.color=S.errors.length?'var(--r)':'var(--o)';
+  // brief flash to draw the eye when the count ticks up
+  line.classList.remove('pulse');void line.offsetWidth;line.classList.add('pulse');
+}
 
 // ═══════════════════════════════════════
 // UI HELPERS
@@ -1750,6 +1822,34 @@ function flash(type){
   const f=document.getElementById('flash');
   f.style.background=type==='red'?'rgba(255,40,0,0.14)':'rgba(255,240,200,0.16)';
   f.style.opacity='1';setTimeout(()=>f.style.opacity='0',type==='red'?180:110);
+}
+
+// ── HAPTIC-STYLE FEEDBACK ──────────────────────────────
+// A small toolkit so every meaningful action gives the
+// operator immediate physical/visual confirmation.
+
+// Real device vibration where supported (no-op on desktop).
+function haptic(p){try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
+
+// Knock the microscope image briefly — used for errors/impacts.
+function shake(){
+  const s=document.getElementById('scope');
+  s.classList.remove('shake');void s.offsetWidth;s.classList.add('shake');
+}
+
+// Quick scale "pop" on a control to confirm a discrete press.
+function popBtn(el){
+  if(!el)return;
+  el.classList.remove('tap-pop');void el.offsetWidth;el.classList.add('tap-pop');
+}
+
+// Expanding ring ping at a screen point (e.g. where the laser fires).
+function tapRing(x,y,color){
+  const r=document.createElement('div');
+  r.className='tap-ring';r.style.left=x+'px';r.style.top=y+'px';
+  r.style.color=color||'var(--g)';
+  document.body.appendChild(r);
+  setTimeout(()=>r.remove(),520);
 }
 
 // ═══════════════════════════════════════
@@ -1842,6 +1942,11 @@ function startSim(){
   document.getElementById('toast').classList.remove('show');
   document.getElementById('stepBox').textContent=PHASES[1];
   document.getElementById('stepBox').className='warn';
+  // Step tracker + error tally
+  document.getElementById('stepTrack').classList.add('show');
+  updateStepTrack();
+  document.getElementById('hErrLine').style.display='none';
+  document.getElementById('hErr').textContent='0';
 
   // Refresh objective display
   const obj=OBJS[oIdx];
@@ -1861,6 +1966,7 @@ function toMenu(){
   document.getElementById('focBar').classList.remove('show');
   document.getElementById('blastoBar').classList.remove('show');
   document.getElementById('tempBadge').classList.remove('show');
+  document.getElementById('stepTrack').classList.remove('show');
   document.getElementById('mOv').style.display='flex';
 }
 
