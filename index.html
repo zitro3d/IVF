@@ -1,0 +1,1844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+<title>IVF Biopsy Sim</title>
+<style>
+/* No external fonts — system monospace only */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --g:#00dd72;   /* green — good */
+  --r:#ff3d50;   /* red — alert */
+  --o:#ffaa00;   /* amber — caution */
+  --l:#ff2800;   /* laser red */
+  --bg:#06090a;
+  --panel:rgba(4,8,6,0.96);
+  --mono: -apple-system-ui-monospace, 'SF Mono', 'Menlo', monospace;
+}
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:var(--bg);
+  font-family:var(--mono);
+  color:var(--g);
+  touch-action:none;
+}
+
+/* ── VIEWPORT ── */
+#scope{position:fixed;inset:0;width:100%;height:100%;z-index:1;touch-action:none;}
+#off{display:none;}
+
+/* ── OPTICAL OVERLAYS ── */
+.vig{
+  position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:radial-gradient(ellipse 65% 67% at 50% 47%,
+    transparent 36%,rgba(0,0,0,0.45) 58%,rgba(0,0,0,0.93) 78%,#000 100%);
+}
+.scan{
+  position:fixed;inset:0;z-index:3;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.05) 2px,rgba(0,0,0,0.05) 3px);
+}
+
+/* ── TOP STATUS BAR ── */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:8;
+  padding:max(10px,env(safe-area-inset-top,10px)) 14px 8px;
+  background:linear-gradient(#000 60%,transparent);
+  display:flex;justify-content:space-between;align-items:flex-start;
+  pointer-events:none;
+}
+.tb-left{display:flex;flex-direction:column;gap:2px;}
+.tb-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+.tb-item{font-size:9px;letter-spacing:2px;color:rgba(0,221,114,0.5);}
+.tb-item b{color:rgba(0,221,114,0.85);}
+.tb-item.warn b{color:var(--o);}
+.tb-item.alert b{color:var(--r);}
+.tb-item.laser b{color:var(--l);}
+
+/* ── STEP INSTRUCTION ── */
+#stepBox{
+  position:fixed;
+  top:max(52px,calc(env(safe-area-inset-top,0px)+40px));
+  left:50%;transform:translateX(-50%);
+  z-index:8;pointer-events:none;
+  background:rgba(0,0,0,0.82);
+  border:1px solid rgba(0,221,114,0.3);
+  border-radius:3px;
+  padding:5px 16px;
+  font-size:9px;letter-spacing:2px;
+  color:var(--g);
+  text-align:center;
+  white-space:nowrap;
+  max-width:92vw;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  transition:all 0.3s;
+}
+#stepBox.laser{border-color:rgba(255,40,0,0.5);color:var(--l);}
+#stepBox.warn{border-color:rgba(255,170,0,0.5);color:var(--o);}
+#stepBox.pulse{animation:sbPulse 0.4s ease-out;}
+@keyframes sbPulse{0%{transform:translateX(-50%) scale(1.04);}100%{transform:translateX(-50%) scale(1);}}
+
+/* ── FOCUS RING indicator (around embryo center) ── */
+#focRing{
+  position:fixed;border-radius:50%;
+  transform:translate(-50%,-50%);
+  z-index:4;pointer-events:none;
+  transition:border-color 0.3s, width 0.15s, height 0.15s;
+  border:1.5px solid rgba(0,221,114,0.0);
+}
+
+/* ── CELL COUNT STRIP (center bottom of viewport) ── */
+#cellStrip{
+  position:fixed;
+  bottom:calc(170px + env(safe-area-inset-bottom,0px));
+  left:50%;transform:translateX(-50%);
+  z-index:8;pointer-events:none;
+  display:flex;gap:5px;align-items:center;
+  opacity:0;transition:opacity 0.4s;
+}
+#cellStrip.show{opacity:1;}
+.cdot{width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(0,221,114,0.3);transition:all 0.2s;}
+.cdot.full{background:var(--g);border-color:var(--g);box-shadow:0 0 5px rgba(0,221,114,0.5);}
+.cdot.next{border-color:var(--o);animation:ndot 1s ease-in-out infinite;}
+@keyframes ndot{0%,100%{box-shadow:0 0 2px rgba(255,170,0,0.3);}50%{box-shadow:0 0 7px rgba(255,170,0,0.7);}}
+
+/* ── FOCUS BAR (bottom left, minimal) ── */
+#focBar{
+  position:fixed;
+  bottom:calc(170px + env(safe-area-inset-bottom,0px));
+  left:14px;
+  z-index:8;pointer-events:none;
+  display:flex;flex-direction:column;gap:3px;
+  opacity:0;transition:opacity 0.4s;
+}
+#focBar.show{opacity:1;}
+.fb-l{font-size:7px;letter-spacing:2px;color:rgba(0,221,114,0.3);}
+.fb-t{width:70px;height:4px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;position:relative;}
+.fb-z{position:absolute;top:0;bottom:0;background:rgba(0,221,114,0.14);border-radius:2px;}
+.fb-f{height:100%;border-radius:2px;transition:width 0.06s,background 0.2s;}
+.fb-s{font-size:8px;letter-spacing:1px;}
+
+/* ── BLASTOCOEL BAR (bottom left, below focus) ── */
+#blastoBar{
+  position:fixed;
+  bottom:calc(148px + env(safe-area-inset-bottom,0px));
+  left:14px;
+  z-index:8;pointer-events:none;
+  display:flex;flex-direction:column;gap:2px;
+  opacity:0;transition:opacity 0.4s;
+}
+#blastoBar.show{opacity:1;}
+
+/* ── TEMP / SCALE ── */
+#tempBadge{
+  position:fixed;
+  bottom:calc(170px + env(safe-area-inset-bottom,0px));
+  right:14px;
+  z-index:8;pointer-events:none;
+  display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+  opacity:0;transition:opacity 0.4s;
+}
+#tempBadge.show{opacity:1;}
+.temp-v{font-size:13px;letter-spacing:2px;}
+.temp-l{font-size:7px;letter-spacing:2px;color:rgba(0,221,114,0.3);}
+.temp-b{width:52px;height:3px;background:rgba(255,255,255,0.07);border-radius:2px;overflow:hidden;}
+.temp-f{height:100%;border-radius:2px;transition:width 0.5s,background 0.4s;}
+
+/* ── LASER TARGET (draggable) ── */
+#lt{
+  position:fixed;width:36px;height:36px;border-radius:50%;
+  border:1.5px solid rgba(255,40,0,0.65);
+  transform:translate(-50%,-50%);z-index:7;
+  cursor:crosshair;touch-action:none;display:none;
+}
+#lt::before,#lt::after{content:'';position:absolute;background:rgba(255,40,0,0.65);}
+#lt::before{width:1px;height:13px;left:50%;top:50%;transform:translate(-50%,-50%);}
+#lt::after{width:13px;height:1px;left:50%;top:50%;transform:translate(-50%,-50%);}
+#lt.on{border-color:rgba(255,40,0,0.95);box-shadow:0 0 12px rgba(255,40,0,0.4);animation:ltPulse 1.2s ease-in-out infinite;}
+@keyframes ltPulse{0%,100%{box-shadow:0 0 8px rgba(255,40,0,0.35);}50%{box-shadow:0 0 22px rgba(255,40,0,0.7),0 0 4px rgba(255,40,0,0.9);}}
+#lt.on.dragging{animation:none;}
+#lt.icm{border-color:var(--o);box-shadow:0 0 12px rgba(255,170,0,0.5);}
+.lt-r{position:absolute;inset:-7px;border-radius:50%;border:1px dashed rgba(255,40,0,0.25);animation:lspin 5s linear infinite;}
+@keyframes lspin{to{transform:rotate(360deg);}}
+
+/* ── BIOPSY RETICLE ── */
+#ret{
+  position:fixed;width:40px;height:40px;border-radius:50%;
+  border:1.5px solid rgba(0,221,114,0.5);
+  transform:translate(-50%,-50%);z-index:6;pointer-events:none;
+  transition:left 0.05s,top 0.05s;
+}
+#ret::before,#ret::after{content:'';position:absolute;background:rgba(255,50,50,0.65);}
+#ret::before{width:1px;height:14px;left:50%;top:50%;transform:translate(-50%,-50%);}
+#ret::after{width:14px;height:1px;left:50%;top:50%;transform:translate(-50%,-50%);}
+#ret.lock{border-color:rgba(255,50,50,0.75);box-shadow:0 0 10px rgba(255,50,50,0.3);animation:rlk 0.65s ease-in-out infinite;}
+@keyframes rlk{0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.15);opacity:0.72;}}
+
+/* ── FLASH OVERLAY ── */
+#flash{position:fixed;inset:0;z-index:9;pointer-events:none;opacity:0;transition:opacity 0.08s;}
+
+/* ── ACHIEVEMENT TOAST ── */
+#toast{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:11;background:rgba(0,0,0,0.94);
+  border:1px solid var(--o);border-radius:4px;
+  padding:12px 24px;text-align:center;
+  display:flex;flex-direction:column;gap:4px;
+  pointer-events:none;opacity:0;
+  transition:opacity 0.25s,transform 0.25s;
+}
+#toast.show{opacity:1;transform:translate(-50%,-56%);}
+.t-icon{font-size:24px;line-height:1;}
+.t-title{font-size:10px;letter-spacing:3px;color:var(--o);}
+.t-sub{font-size:8px;letter-spacing:2px;color:rgba(255,170,0,0.55);}
+
+/* ── NOTIFICATION BAR ── */
+#notif{
+  position:fixed;
+  top:max(46px,calc(env(safe-area-inset-top,0px)+32px));
+  left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.94);border:1px solid var(--g);
+  padding:6px 16px;font-size:9px;letter-spacing:2px;color:var(--g);
+  z-index:10;opacity:0;pointer-events:none;transition:opacity 0.25s;
+  border-radius:2px;max-width:94vw;text-align:center;
+}
+#notif.show{opacity:1;}
+#notif.w{border-color:var(--o);color:var(--o);}
+#notif.a{border-color:var(--r);color:var(--r);}
+#notif.ln{border-color:var(--l);color:var(--l);box-shadow:0 0 10px rgba(255,40,0,0.25);}
+
+/* ════════════════════════════════════
+   CONTROL PANEL — redesigned as
+   instrument panel, not app UI
+═══════════════════════════════════ */
+.cp{
+  position:fixed;bottom:0;left:0;right:0;z-index:8;
+  background:var(--panel);
+  border-top:1px solid rgba(0,221,114,0.1);
+  padding:10px 12px;
+  padding-bottom:max(10px,env(safe-area-inset-bottom,10px));
+}
+
+/* FOCUS KNOB — large, center top of panel */
+.focus-row{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+}
+.focus-label{
+  font-size:7px;letter-spacing:2px;color:rgba(0,221,114,0.35);
+  white-space:nowrap;min-width:48px;
+}
+#fk{
+  -webkit-appearance:none;flex:1;height:5px;
+  background:rgba(255,255,255,0.1);border-radius:3px;outline:none;touch-action:none;
+}
+#fk::-webkit-slider-thumb{
+  -webkit-appearance:none;width:0;height:0;
+  border-left:11px solid transparent;
+  border-right:11px solid transparent;
+  border-bottom:20px solid var(--g);
+  background:transparent;
+  cursor:pointer;
+  border-radius:0;
+  filter:drop-shadow(0 0 5px rgba(0,221,114,0.55));
+}
+.focus-val{font-size:9px;color:var(--g);min-width:44px;text-align:right;letter-spacing:1px;}
+
+/* INSTRUMENT ROW — 4 instruments */
+.instr-row{display:flex;gap:8px;align-items:flex-end;justify-content:space-between;}
+
+/* Joystick */
+.joy-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.joy-lbl{font-size:7px;letter-spacing:2px;color:rgba(0,221,114,0.28);}
+.joy{
+  width:72px;height:72px;border-radius:50%;
+  background:rgba(255,255,255,0.025);
+  border:1px solid rgba(0,221,114,0.1);
+  position:relative;touch-action:none;flex-shrink:0;
+}
+.joy-knob{
+  position:absolute;width:28px;height:28px;border-radius:50%;
+  background:rgba(0,221,114,0.15);border:1.5px solid var(--g);
+  left:50%;top:50%;transform:translate(-50%,-50%);
+  box-shadow:0 0 6px rgba(0,221,114,0.2);
+}
+
+/* HOLD SUCTION pedal — hold to grip embryo */
+.ped-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+.ped-lbl{font-size:7px;letter-spacing:2px;color:rgba(255,170,0,0.35);text-align:center;}
+.pedal{
+  width:100%;height:60px;border-radius:8px;
+  background:rgba(255,170,0,0.06);
+  border:1.5px solid rgba(255,170,0,0.25);
+  color:var(--o);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;
+  transition:all 0.08s;
+  font-family:var(--mono);
+}
+.pedal:active,.pedal.pressing{
+  background:rgba(255,170,0,0.22);border-color:var(--o);
+  box-shadow:0 0 14px rgba(255,170,0,0.3);transform:scale(0.97);
+}
+.ped-icon{font-size:18px;line-height:1;}
+.ped-sublbl{font-size:7px;letter-spacing:1px;}
+
+/* BIOPSY SUCTION pedal */
+.bped{
+  background:rgba(255,61,80,0.06);border-color:rgba(255,61,80,0.25);color:var(--r);
+}
+.bped.pressing{background:rgba(255,61,80,0.22);border-color:var(--r);box-shadow:0 0 14px rgba(255,61,80,0.3);}
+.bped-lbl{color:rgba(255,61,80,0.35);}
+
+/* LASER FIRE button */
+.laser-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;}
+.laser-lbl{font-size:7px;letter-spacing:2px;color:rgba(255,40,0,0.35);}
+.laser-btn{
+  width:64px;height:64px;border-radius:50%;
+  background:rgba(255,40,0,0.06);border:1.5px solid rgba(255,40,0,0.3);color:var(--l);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;
+  transition:all 0.08s;font-family:var(--mono);
+}
+.laser-btn.armed{border-color:rgba(255,40,0,0.55);box-shadow:0 0 6px rgba(255,40,0,0.18);}
+.laser-btn.firing{background:rgba(255,40,0,0.3);border-color:var(--l);animation:lfr 0.07s infinite;}
+@keyframes lfr{0%,100%{box-shadow:0 0 14px rgba(255,40,0,0.5);}50%{box-shadow:0 0 28px rgba(255,40,0,0.9);}}
+.laser-btn.done{border-color:rgba(255,40,0,0.14);color:rgba(255,40,0,0.25);}
+.laser-icon{font-size:18px;line-height:1;}
+.laser-sub{font-size:7px;letter-spacing:1px;}
+
+/* PIPETTE advance — right side vertical slider or buttons */
+.pip-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.pip-lbl{font-size:7px;letter-spacing:2px;color:rgba(255,61,80,0.35);}
+.pip-btns{display:flex;flex-direction:column;gap:4px;}
+.pip-btn{
+  width:44px;height:26px;border-radius:4px;
+  background:rgba(255,61,80,0.06);border:1px solid rgba(255,61,80,0.25);color:var(--r);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:pointer;touch-action:manipulation;user-select:none;transition:all 0.1s;
+  font-family:var(--mono);
+}
+.pip-btn:active{background:rgba(255,61,80,0.2);}
+.pip-val{font-size:8px;color:rgba(255,61,80,0.6);letter-spacing:1px;text-align:center;}
+
+/* ── OVERLAYS ── */
+.ov{
+  position:fixed;inset:0;z-index:12;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;padding:20px;
+  padding-top:max(20px,env(safe-area-inset-top,20px));
+  padding-bottom:max(20px,env(safe-area-inset-bottom,20px));
+}
+
+/* MENU */
+#mOv{background:rgba(0,5,3,0.97);}
+.m-logo{font-size:8px;letter-spacing:6px;color:rgba(0,221,114,0.3);text-align:center;}
+.m-title{font-size:16px;letter-spacing:3px;color:var(--g);text-align:center;line-height:1.3;}
+.m-sub{font-size:8px;letter-spacing:2px;color:rgba(0,221,114,0.35);text-align:center;line-height:1.9;}
+.m-protocol{
+  background:rgba(0,221,114,0.04);border:1px solid rgba(0,221,114,0.1);
+  border-radius:3px;padding:10px 14px;width:100%;max-width:320px;
+  display:flex;flex-direction:column;gap:5px;
+}
+.m-step{font-size:8px;letter-spacing:1px;color:rgba(0,221,114,0.4);display:flex;gap:8px;}
+.m-step-n{
+  width:16px;height:16px;border:1px solid rgba(0,221,114,0.2);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:7px;flex-shrink:0;color:rgba(0,221,114,0.5);
+}
+.m-step.ls{color:rgba(255,40,0,0.45)!important;}
+.m-step.ls .m-step-n{border-color:rgba(255,40,0,0.22)!important;}
+.diff-row{display:flex;gap:6px;}
+.db{
+  padding:7px 12px;background:transparent;
+  border:1px solid rgba(0,221,114,0.2);color:rgba(0,221,114,0.38);
+  font-family:var(--mono);font-size:8px;letter-spacing:2px;
+  cursor:pointer;border-radius:2px;transition:all 0.14s;touch-action:manipulation;
+}
+.db.sel{border-color:var(--g);color:var(--g);background:rgba(0,221,114,0.08);}
+.go{
+  padding:13px 42px;background:transparent;
+  border:1px solid var(--g);color:var(--g);
+  font-family:var(--mono);font-size:10px;letter-spacing:4px;
+  cursor:pointer;border-radius:2px;transition:all 0.18s;touch-action:manipulation;
+}
+.go:active{background:rgba(0,221,114,0.12);}
+.m-hint{font-size:7px;letter-spacing:1px;color:rgba(0,221,114,0.2);text-align:center;line-height:1.8;}
+
+/* CONTROLS HINT overlay (first session) */
+#controlHint{
+  position:fixed;inset:0;z-index:11;background:rgba(0,0,0,0.88);
+  display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;
+}
+.ch-title{font-size:11px;letter-spacing:4px;color:var(--g);}
+.ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:300px;}
+.ch-item{
+  background:rgba(0,221,114,0.04);border:1px solid rgba(0,221,114,0.1);
+  border-radius:3px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.ch-icon{font-size:22px;line-height:1;}
+.ch-lbl{font-size:8px;letter-spacing:1px;color:rgba(0,221,114,0.5);text-align:center;line-height:1.5;}
+.ch-ok{
+  padding:10px 32px;background:transparent;border:1px solid var(--g);color:var(--g);
+  font-family:var(--mono);font-size:9px;letter-spacing:3px;cursor:pointer;border-radius:2px;touch-action:manipulation;
+}
+
+/* DEBRIEF */
+#dOv{background:rgba(0,5,3,0.97);display:none;}
+.d-stars{font-size:24px;letter-spacing:4px;text-align:center;}
+.d-grade{font-size:44px;letter-spacing:2px;text-align:center;line-height:1;}
+.d-sub{font-size:8px;letter-spacing:2px;text-align:center;line-height:1.9;color:rgba(0,221,114,0.5);max-width:290px;}
+.d-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;max-width:300px;}
+.d-card{
+  background:rgba(0,221,114,0.03);border:1px solid rgba(0,221,114,0.09);
+  border-radius:2px;padding:7px 4px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.d-val{font-size:15px;color:var(--g);letter-spacing:2px;}
+.d-lbl{font-size:6px;letter-spacing:2px;color:rgba(0,221,114,0.28);}
+.d-card.w .d-val{color:var(--o);}
+.d-card.a .d-val{color:var(--r);}
+.d-errs{width:100%;max-width:300px;display:flex;flex-direction:column;gap:4px;}
+.d-err{font-size:7px;letter-spacing:1px;color:rgba(255,170,0,0.65);display:flex;gap:5px;}
+.d-err::before{content:'▲';flex-shrink:0;}
+.d-ok{font-size:8px;letter-spacing:1px;color:rgba(0,221,114,0.45);text-align:center;}
+.d-btns{display:flex;gap:8px;}
+.d-again{
+  padding:11px 28px;background:transparent;border:1px solid var(--g);color:var(--g);
+  font-family:var(--mono);font-size:9px;letter-spacing:3px;cursor:pointer;border-radius:2px;touch-action:manipulation;
+}
+.d-menu{
+  padding:11px 20px;background:transparent;border:1px solid rgba(0,221,114,0.25);color:rgba(0,221,114,0.45);
+  font-family:var(--mono);font-size:8px;letter-spacing:2px;cursor:pointer;border-radius:2px;touch-action:manipulation;
+}
+</style>
+</head>
+<body>
+
+<!-- RENDER -->
+<canvas id="off"></canvas>
+<canvas id="scope"></canvas>
+<div class="vig"></div>
+<div class="scan"></div>
+<div id="flash"></div>
+
+<!-- FOCUS RING (shows around embryo) -->
+<div id="focRing"></div>
+
+<!-- BIOPSY PIPETTE RETICLE -->
+<div id="ret" style="display:none"></div>
+
+<!-- LASER TARGET -->
+<div id="lt"><div class="lt-r"></div><div id="ltLbl" style="position:absolute;top:110%;left:50%;transform:translateX(-50%);font-size:7px;letter-spacing:2px;color:rgba(255,40,0,0.7);white-space:nowrap;font-family:-apple-system-ui-monospace,'SF Mono','Menlo',monospace">DRAG ME</div></div>
+
+<!-- TOP STATUS BAR -->
+<div class="topbar">
+  <div class="tb-left">
+    <div class="tb-item"><b id="hMag">200×</b> · <b id="hObj">Plan 10×</b></div>
+    <div class="tb-item warn" id="hIcmLine" style="display:flex;align-items:center;gap:5px;">
+    <!-- Mini clock dial -->
+    <svg id="icmDial" width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0;opacity:0.7;">
+      <circle cx="9" cy="9" r="7" fill="none" stroke="rgba(255,170,0,0.3)" stroke-width="1.5"/>
+      <!-- 9 o'clock target zone (left side) -->
+      <path d="M9,9 L2,9" stroke="rgba(0,221,114,0.5)" stroke-width="1.5" stroke-linecap="round"/>
+      <text x="1" y="10" font-size="3.5" fill="rgba(0,221,114,0.6)" font-family="monospace">9</text>
+      <!-- ICM current position indicator -->
+      <line id="icmNeedle" x1="9" y1="9" x2="16" y2="9" stroke="rgba(255,170,0,0.85)" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <b id="hIcm">POSITION ICM</b>
+  </div>
+  </div>
+  <div class="tb-right">
+    <div class="tb-item alert"><b id="hTemp" style="color:var(--r)">35.8°C</b></div>
+    <div class="tb-item laser" id="hLaserLine" style="display:none"><b id="hLaser">LASER</b></div>
+  </div>
+</div>
+
+<!-- STEP INSTRUCTION -->
+<div id="stepBox">IVF BIOPSY SIMULATOR</div>
+
+<!-- FOCUS BAR -->
+<div id="focBar">
+  <div class="fb-l">FOCUS</div>
+  <div class="fb-t">
+    <div class="fb-z" id="fbZ"></div>
+    <div class="fb-f" id="fbF" style="width:5%;background:var(--r)"></div>
+  </div>
+  <div class="fb-s" id="fbS" style="color:var(--r)">BLURRED</div>
+</div>
+
+<!-- BLASTOCOEL -->
+<div id="blastoBar">
+  <div class="fb-l">BLASTOCOEL</div>
+  <div class="fb-t"><div class="fb-f" id="bF" style="width:100%;background:var(--g)"></div></div>
+  <div class="fb-s" id="bS" style="color:rgba(0,221,114,0.6)">FULL</div>
+</div>
+
+<!-- CELL COUNT -->
+<div id="cellStrip"></div>
+
+<!-- TEMP BADGE -->
+<div id="tempBadge">
+  <div class="temp-v" id="tV" style="color:var(--r)">35.8°C</div>
+  <div class="temp-b"><div class="temp-f" id="tF" style="width:40%;background:var(--r)"></div></div>
+  <div class="temp-l">STAGE TEMP</div>
+</div>
+
+<!-- ACHIEVEMENT TOAST -->
+<div id="toast">
+  <div class="t-icon" id="tIcon">⭐</div>
+  <div class="t-title" id="tTitle">ACHIEVEMENT</div>
+  <div class="t-sub" id="tSub">+100 pts</div>
+</div>
+
+<!-- NOTIFICATION -->
+<div id="notif"></div>
+
+<!-- ══════════════════════════════
+     CONTROL PANEL
+     Mirrors real lab instruments:
+     - Focus knob (top)
+     - Stage joystick (left)
+     - Hold pedal + Biopsy pedal (center)
+     - Laser button (right)
+     - Pipette advance +/− (far right)
+════════════════════════════════ -->
+<div class="cp" id="cp" style="display:none">
+
+  <!-- FOCUS KNOB -->
+  <!-- FOCUS KNOB top, objective below it -->
+  <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:2px;">
+    <div class="focus-row">
+      <div class="focus-label" style="font-size:7px;letter-spacing:2px;color:rgba(0,221,114,0.35)">FOCUS</div>
+      <input type="range" id="fk" min="0" max="100" value="38" oninput="onFocus(+this.value)">
+      <div class="focus-val" id="fv">—</div>
+    </div>
+    <!-- Objective / zoom below focus slider -->
+    <div style="display:flex;align-items:center;gap:6px;padding:0 2px;">
+      <div style="font-size:7px;letter-spacing:2px;color:rgba(0,221,114,0.28);white-space:nowrap;">OBJ</div>
+      <div class="pip-btn" style="width:22px;height:22px;font-size:12px;border-color:rgba(0,221,114,0.22);color:rgba(0,221,114,0.6);flex-shrink:0" ontouchstart="chObj(-1)" onclick="chObj(-1)">−</div>
+      <div style="flex:1;text-align:center;font-size:8px;color:var(--g);letter-spacing:1px;" id="oDispFocus">Plan 10× · 200×</div>
+      <div class="pip-btn" style="width:22px;height:22px;font-size:12px;border-color:rgba(0,221,114,0.22);color:rgba(0,221,114,0.6);flex-shrink:0" ontouchstart="chObj(+1)" onclick="chObj(+1)">+</div>
+    </div>
+  </div>
+
+  <!-- INSTRUMENTS: ZOOM · HOLD · STAGE(center) · SUCTION+PIPETTE stacked · LASER -->
+  <div class="instr-row" style="align-items:center;">
+
+    <!-- ZOOM — far left -->
+    <div class="pip-wrap" style="min-width:44px;flex-shrink:0;">
+      <div class="pip-btns">
+        <div class="pip-btn" id="objIn" style="border-color:rgba(0,221,114,0.25);color:var(--g);" ontouchstart="chObj(+1)" onclick="chObj(+1)">+</div>
+        <div class="pip-btn" id="objOut" style="border-color:rgba(0,221,114,0.25);color:var(--g);" ontouchstart="chObj(-1)" onclick="chObj(-1)">−</div>
+      </div>
+      <div class="pip-val" id="oDisp" style="color:var(--g)">200×</div>
+      <div class="pip-lbl" style="font-size:7px;letter-spacing:1px;color:rgba(0,221,114,0.28)">ZOOM</div>
+    </div>
+
+    <!-- HOLD PEDAL -->
+    <div class="ped-wrap" style="flex-shrink:0;">
+      <div class="pedal" id="hPed">
+        <div class="ped-icon">⊙</div>
+        <div class="ped-sublbl" id="hPedLbl">HOLD</div>
+      </div>
+      <div class="ped-lbl">GRIP</div>
+    </div>
+
+    <!-- STAGE JOYSTICK — centered, takes remaining space -->
+    <div class="joy-wrap" style="flex:1;align-items:center;">
+      <div class="joy" id="joy" style="margin:0 auto;"><div class="joy-knob" id="jk"></div></div>
+      <div class="joy-lbl">STAGE</div>
+    </div>
+
+    <!-- SUCTION stacked on top of pipette arrows -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">
+      <!-- Suction pedal -->
+      <div class="pedal bped" id="sPed" style="width:108px;height:42px;border-radius:6px;flex-direction:row;gap:8px;padding:0 10px;">
+        <div class="ped-icon" style="font-size:15px;">◎</div>
+        <div style="display:flex;flex-direction:column;gap:1px;align-items:flex-start;">
+          <div class="ped-sublbl" id="sPedLbl" style="font-size:8px;letter-spacing:1px;">SUCTION</div>
+          <div style="font-size:6px;letter-spacing:1px;color:rgba(255,61,80,0.4);">HOLD TO ASPIRATE</div>
+        </div>
+      </div>
+      <!-- Pipette arrows directly below, same width -->
+      <div style="display:flex;gap:0;align-items:center;width:108px;justify-content:space-between;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+          <div class="pip-btn" id="pipOut" onclick="pipStep(+1)" style="width:40px;height:32px;font-size:16px;border-color:rgba(255,61,80,0.3);color:var(--r);border-radius:4px;">◀</div>
+          <div style="font-size:6px;letter-spacing:1px;color:rgba(255,61,80,0.35);">OUT</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+          <div class="pip-val" id="pipV" style="font-size:8px;min-width:24px;text-align:center;">RET</div>
+          <div style="font-size:5px;letter-spacing:1px;color:rgba(255,61,80,0.28);">PIP</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+          <div class="pip-btn" id="pipIn" onclick="pipStep(-1)" style="width:40px;height:32px;font-size:16px;border-color:rgba(255,61,80,0.3);color:var(--r);border-radius:4px;">▶</div>
+          <div style="font-size:6px;letter-spacing:1px;color:rgba(255,61,80,0.35);">IN</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LASER — far right -->
+    <div class="laser-wrap" style="flex-shrink:0;">
+      <div class="laser-btn armed" id="lBtn">
+        <div class="laser-icon">✦</div>
+        <div class="laser-sub" id="lSub">LASER</div>
+      </div>
+      <div class="laser-lbl" id="lInfo">set target</div>
+    </div>
+
+  </div>
+</div>
+
+
+
+<!-- CONTROLS HINT (first session) -->
+<div id="controlHint">
+  <div class="ch-title">HOW TO USE</div>
+  <div class="ch-grid">
+    <div class="ch-item"><div class="ch-icon">↕</div><div class="ch-lbl">Drag FOCUS knob to sharpen embryo</div></div>
+    <div class="ch-item"><div class="ch-icon">⊕</div><div class="ch-lbl">STAGE joystick moves embryo</div></div>
+    <div class="ch-item"><div class="ch-icon">⊙</div><div class="ch-lbl">HOLD pedal grips embryo to rotate ICM</div></div>
+    <div class="ch-item"><div class="ch-icon">◎</div><div class="ch-lbl">SUCTION pedal aspirates cells</div></div>
+    <div class="ch-item"><div class="ch-icon">▶◀</div><div class="ch-lbl">Arrow buttons advance / retract pipette</div></div>
+    <div class="ch-item"><div class="ch-icon">✦</div><div class="ch-lbl">LASER fires at draggable target on zona</div></div>
+  </div>
+  <button class="ch-ok" onclick="dismissHint()">GOT IT — BEGIN</button>
+</div>
+
+<!-- MENU OVERLAY -->
+<div class="ov" id="mOv">
+  <div class="m-logo">EMBRYOTEK · IVF TRAINING</div>
+  <div class="m-title">Trophectoderm<br>Biopsy</div>
+  <div class="m-sub">Day 5 Blastocyst · ESHRE 2024 Protocol<br>Laser-assisted · PGT specimen collection</div>
+
+  <div class="diff-row">
+    <div class="db" id="dE" onclick="setDiff('e')">GUIDED</div>
+    <div class="db sel" id="dM" onclick="setDiff('m')">STANDARD</div>
+    <div class="db" id="dH" onclick="setDiff('h')">EXPERT</div>
+  </div>
+
+  <div class="m-protocol">
+    <div class="m-step"><div class="m-step-n">1</div>Warm stage · Focus zona pellucida</div>
+    <div class="m-step"><div class="m-step-n">2</div>Hold embryo · Rotate ICM to 9 o'clock</div>
+    <div class="m-step ls"><div class="m-step-n">3</div>Drag laser target opposite ICM · Fire 3–5 pulses</div>
+    <div class="m-step"><div class="m-step-n">4</div>Wait for TE herniation</div>
+    <div class="m-step"><div class="m-step-n">5</div>Advance pipette · Aspirate 5–8 cells</div>
+    <div class="m-step ls"><div class="m-step-n">6</div>Stretch bridge · Laser-cut cell junctions</div>
+    <div class="m-step"><div class="m-step-n">7</div>Retract pipette · Secure specimen</div>
+  </div>
+
+  <button class="go" onclick="beginSession()">START SESSION</button>
+  <div class="m-hint">Holding pipette: Ø130μm · Biopsy pipette: Ø30μm<br>Laser: 1480nm diode · Stage: 37°C heated</div>
+</div>
+
+<!-- DEBRIEF OVERLAY -->
+<div class="ov" id="dOv">
+  <div class="d-stars" id="dStars">☆☆☆☆☆</div>
+  <div class="d-grade" id="dGrade">—</div>
+  <div class="d-sub" id="dSub">—</div>
+  <div class="d-grid">
+    <div class="d-card" id="dc1"><div class="d-val" id="dv1">—</div><div class="d-lbl">FOCUS</div></div>
+    <div class="d-card" id="dc2"><div class="d-val" id="dv2">—</div><div class="d-lbl">ICM POS</div></div>
+    <div class="d-card" id="dc3"><div class="d-val" id="dv3">—</div><div class="d-lbl">LASER</div></div>
+    <div class="d-card" id="dc4"><div class="d-val" id="dv4">—</div><div class="d-lbl">CELLS</div></div>
+    <div class="d-card" id="dc5"><div class="d-val" id="dv5">—</div><div class="d-lbl">BLASTO</div></div>
+    <div class="d-card" id="dc6"><div class="d-val" id="dv6">0</div><div class="d-lbl">ERRORS</div></div>
+  </div>
+  <div class="d-errs" id="dErrs"></div>
+  <div class="d-btns">
+    <button class="d-again" onclick="startSim()">REPEAT</button>
+    <button class="d-menu" onclick="toMenu()">MENU</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// OBJECTIVES
+// ═══════════════════════════════════════
+const OBJS=[
+  {n:'Plan 4×',  m:80,  fOpt:0.40,drift:0.030},
+  {n:'Plan 10×', m:200, fOpt:0.52,drift:0.068},
+  {n:'Plan 20×', m:320, fOpt:0.64,drift:0.102},
+  {n:'Plan 40×', m:480, fOpt:0.42,drift:0.140},
+];
+let oIdx=1;
+
+// ═══════════════════════════════════════
+// DIFFICULTY
+// ═══════════════════════════════════════
+const DC={
+  e:{dM:0.3,tempR:0.10,fNoise:0,  icmP:false,zP:3,jP:1,hints:true, sucPen:90},
+  m:{dM:0.7,tempR:0.25,fNoise:0.3,icmP:true, zP:4,jP:2,hints:true, sucPen:82},
+  h:{dM:1.2,tempR:0.45,fNoise:0.7,icmP:true, zP:5,jP:3,hints:false,sucPen:75},
+};
+let diff='m';
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+function fresh(){
+  return{
+    t:0, live:false,
+    // Temperature
+    temp:35.2, tempOk:false,
+    // Focus — starts near optimal so embryo is visible but slightly soft
+    focus:38, focusLocked:false,
+    // Stage
+    stX:0,stY:0, dX:0,dY:0, dVX:0.046,dVY:0.027,
+    // ICM
+    icmAngle:1.0, icmOk:false, _icmWas:false,
+    // Hold pipette
+    holdSuc:0, holdActive:false,
+    // Zona laser
+    ltAngle:Math.PI, ltOnZona:false, ltNearICM:false,
+    ltX:0,ltY:0, ltDrag:false,
+    zonePulses:0, zoneCut:false, zoneCutAngle:Math.PI,
+    zoneCutGrowth:0, laserFlash:0,
+    // Herniation
+    hernProg:0,
+    // Biopsy
+    biopsy:0, bioSuc:0, cells:0,
+    bridgeFormed:false, bridgeLen:0,
+    // Junction cut
+    juncPulses:0, juncCut:false,
+    // Physics
+    zonaIndent:0, cellStretch:0, blastoC:0,
+    // Procedure
+    step:0,
+    // Scoring
+    startT:null, elapsed:0,
+    score:0, errors:[], errSet:new Set(), penalties:0,
+    // Membrane
+    mPh:Array.from({length:24},()=>Math.random()*Math.PI*2),
+    mAmp:Array.from({length:24},()=>0.003+Math.random()*0.005),
+    notifT:null, toastT:null,
+    procedureDone:false,
+    _laserArmed:false,
+    pullStretch:0,    // visual bridge stretch when retracting without laser cut
+    pullWarned:false, // warned user to laser cut
+  };
+}
+let S=fresh();
+
+// ═══════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════
+const scope=document.getElementById('scope');
+const ctx=scope.getContext('2d');
+const off=document.getElementById('off');
+const oCtx=off.getContext('2d');
+function resize(){scope.width=off.width=window.innerWidth;scope.height=off.height=window.innerHeight;}
+window.addEventListener('resize',resize);
+resize();
+
+// ═══════════════════════════════════════
+// EMBRYO PARAMS
+// ═══════════════════════════════════════
+function EP(){
+  const W=scope.width,H=scope.height,sc=OBJS[oIdx].m/200;
+  const ox=S.stX*1.02+S.dX*0.16, oy=S.stY*1.02+S.dY*0.16;
+  const embX=W/2-48*sc+ox, embY=H/2+oy;
+  const bb=Math.sin(S.t*0.05*Math.PI*2)*0.011*(1-S.blastoC);
+  const embR=(80+bb*80)*sc;
+  const icmX=embX+Math.cos(S.icmAngle)*embR*0.44;
+  const icmY=embY+Math.sin(S.icmAngle)*embR*0.36;
+  const icmR=embR*0.34;
+  const hernX=embX+Math.cos(S.zoneCutAngle)*(embR-S.zonaIndent*13*sc*0.3);
+  const hernY=embY+Math.sin(S.zoneCutAngle)*embR*0.87;
+  return{W,H,sc,embX,embY,embR,bb,icmX,icmY,icmR,hernX,hernY};
+}
+function getFSharp(){return Math.max(0,1-Math.abs(S.focus/100-OBJS[oIdx].fOpt)*2.7);}
+
+// ═══════════════════════════════════════
+// BLUR
+// ═══════════════════════════════════════
+function applyBlur(ba){
+  if(ba<0.45){ctx.globalAlpha=1;ctx.clearRect(0,0,scope.width,scope.height);ctx.drawImage(off,0,0);return;}
+  const p=Math.min(16,Math.round(ba*2)),sp=ba*3.2,al=1/(p*1.5);
+  ctx.clearRect(0,0,scope.width,scope.height);
+  ctx.globalAlpha=Math.max(0.05,1-ba*0.08);ctx.drawImage(off,0,0);
+  ctx.globalAlpha=al;
+  for(let i=0;i<p;i++){
+    const a=(i/p)*Math.PI*2,r=sp*(0.3+0.7*(i/p));
+    ctx.drawImage(off,Math.cos(a)*r,Math.sin(a)*r);
+    ctx.drawImage(off,Math.cos(a)*r*0.38,Math.sin(a)*r*0.38);
+  }
+  if(ba>6){ctx.globalAlpha=Math.min(0.28,(ba-6)*0.04);ctx.fillStyle='#8aa070';ctx.fillRect(0,0,scope.width,scope.height);}
+  ctx.globalAlpha=1;
+}
+
+// ═══════════════════════════════════════
+// DRAW SCENE — Hoffman Modulation Contrast style
+// Reference: real IVF microscopy photos
+// Colors: grey-purple BG, yellow-green/purple-blue chroma fringing,
+//         transparent glass pipette, clean zona breach (no burn residue)
+// ═══════════════════════════════════════
+function drawScene(){
+  const {W,H,sc,embX,embY,embR,bb,icmX,icmY,icmR,hernX,hernY}=EP();
+  const bc=oCtx;
+  const iA=S.zoneCutAngle, iD=S.zonaIndent*13*sc;
+  const fS=getFSharp();
+
+  // ── BACKGROUND — cool silver-grey like real dish ──
+  bc.fillStyle='#8892a0';
+  bc.fillRect(0,0,W,H);
+
+  // Hoffman illumination — uneven, slightly brighter upper-center
+  const illum=bc.createRadialGradient(W*0.5,H*0.38,0,W*0.5,H*0.5,Math.max(W,H)*0.7);
+  illum.addColorStop(0,'rgba(225,228,238,0.55)');
+  illum.addColorStop(0.3,'rgba(195,200,215,0.3)');
+  illum.addColorStop(0.7,'rgba(145,152,168,0.1)');
+  illum.addColorStop(1,'rgba(80,88,105,0.0)');
+  bc.fillStyle=illum;bc.fillRect(0,0,W,H);
+
+  // Subtle purple-blue cast in lower half (Hoffman shadow side)
+  const shadow=bc.createLinearGradient(0,H*0.4,0,H);
+  shadow.addColorStop(0,'rgba(0,0,0,0)');
+  shadow.addColorStop(1,'rgba(90,80,120,0.18)');
+  bc.fillStyle=shadow;bc.fillRect(0,0,W,H);
+
+  // Fine optical noise — media
+  for(let i=0;i<20;i++){
+    const px=((Math.sin(i*2.6+S.t*0.006)+1)*0.5*W);
+    const py=((Math.cos(i*1.8+S.t*0.005)+1)*0.5*H);
+    bc.beginPath();bc.arc(px,py,0.5+Math.sin(i)*0.3,0,Math.PI*2);
+    bc.fillStyle=`rgba(180,185,200,${0.04+Math.abs(Math.sin(i*1.1))*0.04})`;bc.fill();
+  }
+
+  // ── HOLDING PIPETTE — glass appearance from left ──
+  if(S.holdSuc>0){
+    const hAdv=Math.min(1,S.holdSuc/40);
+    const hTipX=embX-embR+2*sc;
+    const hStartX=-80;
+    const hX=hStartX+(hTipX-hStartX)*hAdv;
+    const hTipY=embY;
+    const hW=15*sc; // thick holding pipette
+
+    // Glass body — transparent with chroma fringing
+    bc.save();
+    bc.globalAlpha=0.82;
+    // Top edge — yellow-green (bright side)
+    bc.beginPath();bc.moveTo(hX,hTipY-hW);bc.lineTo(-20,hTipY-hW);
+    bc.strokeStyle='rgba(195,210,80,0.85)';bc.lineWidth=2.2;bc.stroke();
+    // Bottom edge — purple-blue (shadow side)
+    bc.beginPath();bc.moveTo(hX,hTipY+hW);bc.lineTo(-20,hTipY+hW);
+    bc.strokeStyle='rgba(100,90,175,0.75)';bc.lineWidth=2.2;bc.stroke();
+    // Glass body fill — very transparent
+    bc.beginPath();
+    bc.moveTo(hX,hTipY-hW);bc.lineTo(-20,hTipY-hW);
+    bc.lineTo(-20,hTipY+hW);bc.lineTo(hX,hTipY+hW);bc.closePath();
+    const gpg=bc.createLinearGradient(0,hTipY-hW,0,hTipY+hW);
+    gpg.addColorStop(0,'rgba(210,220,180,0.12)');
+    gpg.addColorStop(0.35,'rgba(235,240,225,0.22)');
+    gpg.addColorStop(0.65,'rgba(175,180,210,0.12)');
+    gpg.addColorStop(1,'rgba(120,110,175,0.08)');
+    bc.fillStyle=gpg;bc.fill();
+    // Lumen opening — dark circle
+    bc.beginPath();bc.arc(hX,hTipY,6*sc,0,Math.PI*2);
+    bc.fillStyle='rgba(20,18,30,0.7)';bc.fill();
+    bc.strokeStyle='rgba(195,210,80,0.5)';bc.lineWidth=0.8;bc.stroke();
+    bc.restore();
+  }
+
+  // ── ZONA PELLUCIDA — bright yellow-green wall, Hoffman style ──
+  // The zona is the most distinctive feature — golden-yellow, thin, sharp
+  bc.beginPath();
+  for(let a=0;a<Math.PI*2;a+=0.012){
+    const dA=Math.abs(((a-iA+Math.PI)%(Math.PI*2))-Math.PI);
+    const indent=Math.exp(-dA*dA*9)*iD;
+    // Zona breach — clean opening, no fill, just a gap
+    const ablW=Math.max(5,(S.zonePulses/DC[diff].zP)*35);
+    const abl=S.zoneCutGrowth*14*sc*Math.exp(-dA*dA*ablW);
+    const r=Math.max(embR*0.1,embR-indent-abl);
+    const px=embX+Math.cos(a)*r;
+    const py=embY+Math.sin(a)*r*(1-S.blastoC*0.08);
+    a<0.015?bc.moveTo(px,py):bc.lineTo(px,py);
+  }
+  bc.closePath();
+
+  // Interior fill — grey-purple like the real photos
+  const intG=bc.createRadialGradient(embX-8*sc,embY-6*sc,2,embX,embY,embR);
+  intG.addColorStop(0,'rgba(195,200,215,0.28)');
+  intG.addColorStop(0.4,'rgba(165,170,190,0.18)');
+  intG.addColorStop(1,'rgba(120,115,150,0.08)');
+  bc.fillStyle=intG;bc.fill();
+
+  // Zona wall — bright yellow-green top, purple shadow bottom (Hoffman)
+  // Top highlight
+  bc.beginPath();
+  for(let a=-Math.PI*0.7;a<Math.PI*0.7;a+=0.02){
+    const dA=Math.abs(((a-iA+Math.PI)%(Math.PI*2))-Math.PI);
+    const abl=S.zoneCutGrowth*14*sc*Math.exp(-dA*dA*Math.max(5,(S.zonePulses/DC[diff].zP)*35));
+    const r=embR-Math.exp(-dA*dA*9)*iD-abl;
+    a===-Math.PI*0.7?bc.moveTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08)):
+                     bc.lineTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08));
+  }
+  bc.strokeStyle=`rgba(210,228,80,${0.82+bb*2})`; // yellow-green bright
+  bc.lineWidth=(3.8-S.blastoC*1.2)*sc*Math.max(0.12,fS);bc.stroke();
+
+  // Shadow side
+  bc.beginPath();
+  for(let a=Math.PI*0.3;a<Math.PI*1.7;a+=0.02){
+    const dA=Math.abs(((a-iA+Math.PI)%(Math.PI*2))-Math.PI);
+    const abl=S.zoneCutGrowth*14*sc*Math.exp(-dA*dA*Math.max(5,(S.zonePulses/DC[diff].zP)*35));
+    const r=embR-Math.exp(-dA*dA*9)*iD-abl;
+    a===Math.PI*0.3?bc.moveTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08)):
+                    bc.lineTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08));
+  }
+  bc.strokeStyle=`rgba(95,85,165,${0.65+bb*1.5})`; // purple-blue shadow
+  bc.lineWidth=(2.5-S.blastoC*0.8)*sc*Math.max(0.1,fS);bc.stroke();
+
+  // Outer chroma fringe — yellow above, purple below
+  for(const[off,col,wid]of[
+    [-1.5,'rgba(200,220,55,0.22)',2],
+    [+1.5,'rgba(85,75,155,0.18)',2],
+  ]){
+    bc.beginPath();
+    for(let a=0;a<Math.PI*2;a+=0.04){
+      const dA=Math.abs(((a-iA+Math.PI)%(Math.PI*2))-Math.PI);
+      const r=embR-Math.exp(-dA*dA*9)*iD+off;
+      bc.lineTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08)+off*0.4);
+    }
+    bc.closePath();bc.strokeStyle=col;bc.lineWidth=wid*sc;bc.stroke();
+  }
+
+  // ── ICM — dense, textured, yellow-green mass ──
+  bc.save();
+  // Base fill
+  const icmG=bc.createRadialGradient(icmX-4*sc,icmY-4*sc,1,icmX,icmY,icmR);
+  icmG.addColorStop(0,'rgba(175,195,65,0.72)');
+  icmG.addColorStop(0.4,'rgba(145,165,45,0.58)');
+  icmG.addColorStop(0.8,'rgba(105,120,30,0.4)');
+  icmG.addColorStop(1,'rgba(75,85,20,0.2)');
+  bc.beginPath();bc.ellipse(icmX,icmY,icmR,icmR*0.82,S.icmAngle*0.2,0,Math.PI*2);
+  bc.fillStyle=icmG;bc.fill();
+  // Texture — small cell-like blobs
+  for(let i=0;i<14;i++){
+    const a=(i/14)*Math.PI*2+S.t*0.008;
+    const r=icmR*(0.25+Math.sin(i*2.3)*0.35);
+    const cx2=icmX+Math.cos(a)*r,cy2=icmY+Math.sin(a)*r*0.85;
+    const cr=(3.5+Math.sin(i*1.8)*1.5)*sc;
+    bc.beginPath();bc.arc(cx2,cy2,cr,0,Math.PI*2);
+    const cg=bc.createRadialGradient(cx2-cr*0.3,cy2-cr*0.3,0,cx2,cy2,cr);
+    cg.addColorStop(0,'rgba(200,218,88,0.55)');cg.addColorStop(1,'rgba(95,108,28,0.2)');
+    bc.fillStyle=cg;bc.fill();
+    // Cell border — dark green
+    bc.strokeStyle='rgba(60,72,18,0.35)';bc.lineWidth=0.5*sc;bc.stroke();
+  }
+  // Hoffman shading on ICM — bright top-left, purple shadow bottom-right
+  const icmShade=bc.createLinearGradient(icmX-icmR,icmY-icmR,icmX+icmR*0.5,icmY+icmR*0.5);
+  icmShade.addColorStop(0,'rgba(215,230,100,0.15)');
+  icmShade.addColorStop(0.5,'rgba(0,0,0,0)');
+  icmShade.addColorStop(1,'rgba(70,60,110,0.2)');
+  bc.beginPath();bc.ellipse(icmX,icmY,icmR,icmR*0.82,0,0,Math.PI*2);
+  bc.fillStyle=icmShade;bc.fill();
+  bc.restore();
+
+  // Blastocoel cavity — clearer, empty space (grey-silver)
+  const cavG=bc.createRadialGradient(embX+18*sc,embY+5*sc,1,embX+14*sc,embY+4*sc,embR*0.48);
+  cavG.addColorStop(0,`rgba(210,215,228,${0.22*(1-S.blastoC)})`);
+  cavG.addColorStop(0.5,`rgba(175,180,200,${0.1*(1-S.blastoC)})`);
+  cavG.addColorStop(1,'rgba(0,0,0,0)');
+  bc.beginPath();bc.ellipse(embX+10*sc,embY+3*sc,embR*0.35*(1-S.blastoC*0.25),embR*0.28*(1-S.blastoC*0.35),0,0,Math.PI*2);
+  bc.fillStyle=cavG;bc.fill();
+
+  // ── TE CELLS — textured ring, yellow-green tones ──
+  for(let i=0;i<24;i++){
+    const ba=(i/24)*Math.PI*2;
+    const fl=Math.sin(S.t*1.6+S.mPh[i])*S.mAmp[i];
+    const dA=Math.abs(((ba-iA+Math.PI)%(Math.PI*2))-Math.PI);
+    const r=embR*(0.7+Math.sin(i*3.5)*0.07+fl-Math.exp(-dA*dA*6)*S.zonaIndent*0.02);
+    const cx2=embX+Math.cos(ba)*r,cy2=embY+Math.sin(ba)*r*(1-S.blastoC*0.09);
+    const cr=(5.8+Math.sin(i*2.0)*2.1)*sc*(1+fl*3.5);
+    bc.beginPath();bc.arc(cx2,cy2,cr,0,Math.PI*2);
+    const cg=bc.createRadialGradient(cx2-cr*0.3,cy2-cr*0.3,0,cx2,cy2,cr);
+    // Hoffman: bright yellow-green highlight top-left, purple-dark bottom-right
+    cg.addColorStop(0,`rgba(198,215,80,${0.52+Math.sin(i)*0.12})`);
+    cg.addColorStop(0.5,`rgba(148,165,48,0.35)`);
+    cg.addColorStop(1,`rgba(78,68,112,0.18)`);
+    bc.fillStyle=cg;bc.fill();
+    // Cell border
+    bc.strokeStyle=`rgba(88,75,125,${0.28+fl*4})`;bc.lineWidth=0.6*sc;bc.stroke();
+  }
+
+  // ── HERNIATING CELLS ──
+  const hS=Math.min(1,S.hernProg);
+  for(let h=0;h<6;h++){
+    if(h>Math.floor(hS*6+1))continue;
+    const pg=Math.min(1,hS*(6/(h+1)));
+    const sX=h*(8.5+S.cellStretch*13)*sc*pg;
+    const sY=Math.sin(h*1.1+S.t*0.4)*(3.0-S.cellStretch*1.5)*sc*(1-S.bridgeLen*0.55);
+    const hx=hernX+Math.cos(iA)*sX+sY*0.2;
+    const hy=hernY+Math.sin(iA)*sX*0.48+sY;
+    const cRx=(7.2-h*0.8+S.cellStretch*6+S.bridgeLen*3.5)*sc;
+    const cRy=Math.max(1.2,(7.2-h*0.8-S.cellStretch*3-S.bridgeLen*3)*sc);
+    bc.beginPath();bc.ellipse(hx,hy,Math.max(cRx,1.2),Math.max(cRy,1.2),Math.atan2(Math.sin(iA),Math.cos(iA)),0,Math.PI*2);
+    const hg=bc.createRadialGradient(hx-cRx*0.3,hy-cRy*0.28,0,hx,hy,cRx);
+    hg.addColorStop(0,'rgba(205,225,82,0.88)');
+    hg.addColorStop(0.5,'rgba(148,165,45,0.5)');
+    hg.addColorStop(1,'rgba(75,65,115,0.25)');
+    bc.fillStyle=hg;bc.fill();
+    bc.strokeStyle='rgba(85,75,125,0.55)';bc.lineWidth=0.85*sc;bc.stroke();
+
+    // Cytoplasmic bridge
+    if(h<5&&pg>0.5&&S.cellStretch>0.08){
+      const nx=hernX+Math.cos(iA)*(h+1)*(8.5+S.cellStretch*13)*sc*pg;
+      const ny=hernY+Math.sin(iA)*(h+1)*(8.5+S.cellStretch*13)*sc*pg*0.48;
+      const bThin=Math.max(0.25,(1.9-S.cellStretch*1.2-S.bridgeLen*1.1))*sc;
+      bc.beginPath();
+      bc.moveTo(hx+Math.cos(iA)*cRx*0.82,hy);
+      bc.quadraticCurveTo((hx+nx)*0.5,(hy+ny)*0.5-1.8*sc,nx-Math.cos(iA)*cRx*0.35,ny);
+      bc.strokeStyle=`rgba(155,175,52,${0.42-S.bridgeLen*0.15})`;bc.lineWidth=bThin;bc.stroke();
+      // Bridge laser hint
+      if(S.step===6&&h===2&&DC[diff].hints){
+        const bx=(hx+nx)*0.5+Math.cos(iA)*5*sc,by=(hy+ny)*0.5;
+        bc.beginPath();bc.arc(bx,by,4*sc,0,Math.PI*2);
+        bc.strokeStyle=`rgba(255,40,0,${0.28+Math.sin(S.t*3)*0.12})`;bc.lineWidth=1.0;bc.stroke();
+      }
+    }
+    // Target hint
+    if((S.step===4||S.step===5)&&S.cells===0&&DC[diff].hints){
+      bc.beginPath();bc.ellipse(hx,hy,cRx+3*sc,cRy+3*sc,0,0,Math.PI*2);
+      bc.strokeStyle=`rgba(0,221,114,${0.14+Math.sin(S.t*2.3+h)*0.07})`;bc.lineWidth=0.9;bc.stroke();
+    }
+  }
+
+  // Nuclei — dark spots
+  for(let i=0;i<8;i++){
+    bc.beginPath();bc.arc(
+      embX+Math.sin(i*2.3+1)*embR*0.46,
+      embY+Math.cos(i*1.7+0.6)*embR*0.46*(1-S.blastoC*0.07),
+      (2.5+Math.sin(i)*0.9)*sc,0,Math.PI*2);
+    bc.fillStyle=`rgba(48,42,72,${0.52+Math.sin(i)*0.1})`;bc.fill();
+  }
+
+  // ── ZONA BREACH — clean opening, NO brown spot ──
+  // Just enhance the gap visibility with a subtle light bleed-through
+  if(S.zoneCutGrowth>0.1){
+    const bX=embX+Math.cos(iA)*embR,bY=embY+Math.sin(iA)*embR*0.89;
+    // Light bleed through opening — background color shows through
+    const openSize=S.zoneCutGrowth*12*sc;
+    const openG=bc.createRadialGradient(bX,bY,0,bX,bY,openSize);
+    openG.addColorStop(0,'rgba(200,210,225,0.35)'); // grey-silver background color
+    openG.addColorStop(0.4,'rgba(185,192,210,0.15)');
+    openG.addColorStop(1,'rgba(0,0,0,0)');
+    bc.beginPath();bc.arc(bX,bY,openSize,0,Math.PI*2);
+    bc.fillStyle=openG;bc.fill();
+    // After full cut — show zona edges curling slightly (realistic)
+    if(S.zoneCut){
+      const edgeA=0.12*S.zoneCutGrowth;
+      for(const side of[-1,1]){
+        bc.beginPath();
+        const a1=iA+side*edgeA,a2=iA+side*(edgeA+0.08);
+        bc.arc(embX,embY,embR,a1,a2);
+        bc.strokeStyle=side>0?'rgba(210,228,80,0.6)':'rgba(95,85,165,0.5)';
+        bc.lineWidth=3*sc;bc.stroke();
+      }
+    }
+  }
+
+  // ── PULL BRIDGE ──
+  if(S.pullStretch>0.05&&S.cells>=5&&S.biopsy>5){
+    const tipX2=scope.width-S.biopsy/100*(scope.width-hernX-7*sc);
+    const tipY2=hernY+2;
+    const numPullCells=Math.min(S.cells,6);
+    for(let pc=0;pc<numPullCells;pc++){
+      const t=pc/(numPullCells-1||1);
+      const px=hernX+(tipX2-hernX)*t;
+      const py=hernY+(tipY2-hernY)*t+Math.sin(t*Math.PI)*12*sc*S.pullStretch;
+      const pRx=(4.8-pc*0.45+S.pullStretch*2.8)*sc;
+      const pRy=Math.max(0.8,(2.8-S.pullStretch*1.8))*sc;
+      bc.beginPath();bc.ellipse(px,py,Math.max(pRx,0.8),Math.max(pRy,0.6),0,0,Math.PI*2);
+      const pcg=bc.createRadialGradient(px,py,0,px,py,pRx);
+      pcg.addColorStop(0,'rgba(198,218,78,0.88)');pcg.addColorStop(1,'rgba(85,75,125,0.35)');
+      bc.fillStyle=pcg;bc.fill();
+      bc.strokeStyle='rgba(85,75,125,0.5)';bc.lineWidth=0.65*sc;bc.stroke();
+    }
+    bc.beginPath();bc.moveTo(hernX,hernY);
+    for(let t=0;t<=1;t+=0.05){
+      bc.lineTo(hernX+(tipX2-hernX)*t,hernY+(tipY2-hernY)*t+Math.sin(t*Math.PI)*12*sc*S.pullStretch);
+    }
+    bc.strokeStyle=`rgba(155,175,52,${0.5-S.pullStretch*0.22})`;
+    bc.lineWidth=Math.max(0.25,(1.7-S.pullStretch*1.4))*sc;bc.stroke();
+    if(S.pullStretch>0.5){
+      const wg=bc.createRadialGradient(hernX,hernY,0,hernX,hernY,9*sc);
+      wg.addColorStop(0,`rgba(255,80,20,${S.pullStretch*0.38})`);wg.addColorStop(1,'rgba(255,0,0,0)');
+      bc.beginPath();bc.arc(hernX,hernY,9*sc,0,Math.PI*2);bc.fillStyle=wg;bc.fill();
+    }
+  }
+
+  // ── BIOPSY PIPETTE — glass, transparent, chromatic fringes ──
+  if(S.biopsy>0){
+    const tipX=W-S.biopsy/100*(W-hernX-7*sc),tipY=hernY+2;
+    const pipW=10*sc; // half-height of pipette
+
+    bc.save();
+    // Top edge — yellow-green (bright side, like real photo)
+    bc.beginPath();bc.moveTo(tipX,tipY-pipW*0.4);bc.lineTo(W+25,tipY-pipW);
+    bc.strokeStyle='rgba(192,212,58,0.88)';bc.lineWidth=2.0;bc.stroke();
+    // Bottom edge — purple-blue (shadow side)
+    bc.beginPath();bc.moveTo(tipX,tipY+pipW*0.4);bc.lineTo(W+25,tipY+pipW);
+    bc.strokeStyle='rgba(88,78,168,0.78)';bc.lineWidth=2.0;bc.stroke();
+    // Glass body — very transparent grey
+    bc.beginPath();
+    bc.moveTo(tipX,tipY-pipW*0.4);bc.lineTo(W+25,tipY-pipW);
+    bc.lineTo(W+25,tipY+pipW);bc.lineTo(tipX,tipY+pipW*0.4);bc.closePath();
+    const gpg=bc.createLinearGradient(tipX,tipY-pipW,tipX,tipY+pipW);
+    gpg.addColorStop(0,'rgba(200,215,175,0.10)');
+    gpg.addColorStop(0.3,'rgba(220,228,208,0.16)');
+    gpg.addColorStop(0.5,'rgba(185,192,215,0.10)');
+    gpg.addColorStop(0.7,'rgba(155,145,195,0.08)');
+    gpg.addColorStop(1,'rgba(110,100,175,0.06)');
+    bc.fillStyle=gpg;bc.fill();
+    // Lumen — dark opening at tip
+    bc.beginPath();bc.arc(tipX,tipY,3.8*sc,0,Math.PI*2);
+    bc.fillStyle='rgba(15,12,25,0.72)';bc.fill();
+    bc.strokeStyle='rgba(192,212,58,0.45)';bc.lineWidth=0.7;bc.stroke();
+
+    // Cells inside pipette — visible through glass
+    if(S.cells>0){
+      for(let c=0;c<Math.min(S.cells,7);c++){
+        const ccx=tipX+(c+0.55)*9.5*sc,ccy=tipY+Math.sin(c*1.3)*1.7*sc,ccr=(3.9-c*0.28)*sc;
+        bc.beginPath();bc.arc(ccx,ccy,ccr,0,Math.PI*2);
+        const ccg=bc.createRadialGradient(ccx,ccy,0,ccx,ccy,ccr);
+        ccg.addColorStop(0,'rgba(200,218,72,0.85)');
+        ccg.addColorStop(0.6,'rgba(138,155,42,0.5)');
+        ccg.addColorStop(1,'rgba(75,65,115,0.3)');
+        bc.fillStyle=ccg;bc.fill();
+        bc.strokeStyle='rgba(75,65,115,0.42)';bc.lineWidth=0.5*sc;bc.stroke();
+      }
+    }
+
+    // Aspiration flow particles
+    if(S.bioSuc>10&&S.biopsy>72&&S.cells<8&&S.zoneCut&&S.hernProg>0.55){
+      const fl=S.bioSuc/100;
+      for(let s2=0;s2<3;s2++){
+        const pr=(S.t*fl*1.2+s2*0.33)%1;
+        const fx=hernX+(tipX-hernX)*pr,fy=hernY+Math.sin(S.t*4.5+s2)*2.5*sc;
+        bc.beginPath();bc.arc(fx,fy,(4.0-pr*2.5)*sc,0,Math.PI*2);
+        const fg=bc.createRadialGradient(fx,fy,0,fx,fy,(4.0-pr*2.5)*sc);
+        fg.addColorStop(0,`rgba(198,215,72,${0.76-pr*0.42})`);
+        fg.addColorStop(1,`rgba(75,65,115,${0.28-pr*0.18})`);
+        bc.fillStyle=fg;bc.fill();
+      }
+    }
+
+    // Junction laser flash
+    if(S.laserFlash>0.01&&S.step===6){
+      const bx=hernX+Math.cos(iA)*4*sc,by=hernY;
+      const jf=bc.createRadialGradient(bx,by,0,bx,by,14*sc*S.laserFlash);
+      jf.addColorStop(0,`rgba(255,255,220,${S.laserFlash})`);
+      jf.addColorStop(0.3,`rgba(255,60,10,${S.laserFlash*0.7})`);
+      jf.addColorStop(1,'rgba(255,0,0,0)');
+      bc.beginPath();bc.arc(bx,by,14*sc*S.laserFlash,0,Math.PI*2);bc.fillStyle=jf;bc.fill();
+    }
+
+    bc.restore();
+  }
+
+  // Hoffman overall directional shading on embryo — bright top-left, dark bottom-right
+  const hofG=bc.createLinearGradient(embX-embR,embY-embR,embX+embR*0.55,embY+embR*0.55);
+  hofG.addColorStop(0,'rgba(215,230,100,0.07)');
+  hofG.addColorStop(0.45,'rgba(0,0,0,0)');
+  hofG.addColorStop(1,'rgba(65,55,105,0.12)');
+  bc.beginPath();bc.arc(embX,embY,embR,0,Math.PI*2);bc.fillStyle=hofG;bc.fill();
+
+  // Zona laser beam flash
+  if(S.laserFlash>0.01&&S.step<=3){
+    const bX=embX+Math.cos(iA)*embR,bY=embY+Math.sin(iA)*embR*0.89;
+    bc.beginPath();bc.moveTo(W,bY);bc.lineTo(bX,bY);
+    bc.strokeStyle=`rgba(255,44,4,${S.laserFlash*0.58})`;bc.lineWidth=1.5*S.laserFlash;bc.stroke();
+    const lf=bc.createRadialGradient(bX,bY,0,bX,bY,16*sc*S.laserFlash);
+    lf.addColorStop(0,`rgba(255,255,210,${S.laserFlash})`);
+    lf.addColorStop(0.25,`rgba(255,60,10,${S.laserFlash*0.7})`);
+    lf.addColorStop(1,'rgba(255,0,0,0)');
+    bc.beginPath();bc.arc(bX,bY,16*sc*S.laserFlash,0,Math.PI*2);bc.fillStyle=lf;bc.fill();
+  }
+
+  return{hernX,hernY};
+}
+
+// ═══════════════════════════════════════
+// MAIN LOOP
+// ═══════════════════════════════════════
+function loop(){
+  try{
+    requestAnimationFrame(loop);
+    if(!S.live){
+      ctx.fillStyle='#06090a';ctx.fillRect(0,0,scope.width,scope.height);
+      return;
+    }
+    S.t+=0.016;
+    const dc=DC[diff];
+    const obj=OBJS[oIdx];
+
+    // Joystick
+    if(S.joyActive){
+      S.stX=Math.max(-100,Math.min(100,S.stX+S.joyX*1.1));
+      S.stY=Math.max(-100,Math.min(100,S.stY+S.joyY*1.1));
+    }
+
+    // Stage drift
+    S.dX+=S.dVX*dc.dM*obj.drift;S.dY+=S.dVY*dc.dM*obj.drift;
+    if(Math.abs(S.dX)>8)S.dVX*=-1;if(Math.abs(S.dY)>5.5)S.dVY*=-1;
+
+    // Temperature warmup
+    if(S.temp<37){
+      S.temp=Math.min(37,S.temp+dc.tempR*0.016);
+      if(S.temp>=37&&!S.tempOk){
+        S.tempOk=true;
+        toast('🌡️','STAGE READY','37.0°C — proceed with biopsy');
+        addScore(80);
+      }
+    }
+    updateTempHUD();
+
+    // ICM rotation via hold + joystick
+    if(S.holdSuc>8){  // starts rotating as soon as some suction applied
+      // Rotate embryo with joystick — X rotates left/right, Y rotates up/down
+      S.icmAngle+=(S.joyX*0.018+S.joyY*0.012);
+      S.icmAngle=((S.icmAngle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
+      const deg=(S.icmAngle*180/Math.PI+360)%360;
+      S.icmOk=deg>=195&&deg<=335;
+      if(S.icmOk&&!S._icmWas){
+        S._icmWas=true;
+        if(S.step===2){
+          nextStep();addScore(150);
+          toast('🔄','ICM POSITIONED','9 o\'clock — safe to drill zona');
+          notify('ICM at 9 — drag red target onto zona right side, then fire laser','good');
+          // Reposition laser target to zona right side (3 o'clock = opposite 9 o'clock ICM)
+          const ep2=EP();
+          S.ltAngle=0.05; // ~3 o'clock, opposite ICM at 9 o'clock
+          S.ltX=ep2.embX+Math.cos(S.ltAngle)*ep2.embR;
+          S.ltY=ep2.embY+Math.sin(S.ltAngle)*ep2.embR;
+          ltEl.style.left=S.ltX+'px'; ltEl.style.top=S.ltY+'px';
+          ltEl.style.display='block'; S.ltOnZona=true;
+          ltEl.classList.add('on'); ltEl.classList.remove('icm');
+          document.getElementById('ltLbl').textContent='DRAG ME';
+        }
+      } else if(!S.icmOk){S._icmWas=false;}
+    }
+
+    updatePhysics();
+
+    // Timer
+    if(S.startT){
+      S.elapsed=Math.floor((Date.now()-S.startT)/1000);
+    }
+
+    // Draw
+    oCtx.clearRect(0,0,scope.width,scope.height);
+    const{hernX,hernY}=drawScene();
+
+    // Blur from focus
+    const fS=getFSharp();
+    applyBlur((1-fS)*8.5+(dc.fNoise*(Math.sin(S.t*0.78)*0.4+Math.sin(S.t*2.1)*0.25)*0.28));
+
+    updateFocusHUD(fS);
+
+    // Focus ring around embryo
+    updateFocusRing(fS);
+
+    // Auto-step on focus locked
+    if(fS>0.82&&S.step===1&&!S.focusLocked){
+      S.focusLocked=true;nextStep();addScore(120);
+      toast('🔬','SHARP FOCUS','Zona pellucida in focus');
+      notify('✓ ZONA IN FOCUS — activate HOLD pedal, rotate ICM to 9 o\'clock','good');
+      // Reveal laser target on zona right side (~3 o\'clock) opposite default ICM
+      const ep0=EP();
+      S.ltAngle=0.05;
+      S.ltX=ep0.embX+Math.cos(S.ltAngle)*ep0.embR;
+      S.ltY=ep0.embY+Math.sin(S.ltAngle)*ep0.embR;
+      ltEl.style.left=S.ltX+'px'; ltEl.style.top=S.ltY+'px';
+      ltEl.style.display='block'; S.ltOnZona=true; ltEl.classList.add('on');
+      document.getElementById('hLaserLine').style.display='block';
+    }
+    // Keep target locked to zona as embryo drifts (when not dragging)
+    if(S.ltOnZona&&!S.ltDrag&&!S.zoneCut&&S.step>=2&&S.step<=3){
+      const ep1=EP();
+      S.ltX=ep1.embX+Math.cos(S.ltAngle)*ep1.embR;
+      S.ltY=ep1.embY+Math.sin(S.ltAngle)*ep1.embR;
+      ltEl.style.left=S.ltX+'px'; ltEl.style.top=S.ltY+'px';
+    }
+
+    // Biopsy reticle
+    const ret=document.getElementById('ret');
+    ret.style.left=(hernX/scope.width*100)+'%';ret.style.top=(hernY/scope.height*100)+'%';
+    if(S.biopsy>=80)ret.classList.add('lock');else ret.classList.remove('lock');
+
+    // ICM HUD
+    const icmOk=S.icmOk;
+    // Show actual clock position to guide user
+    const icmDeg2=(S.icmAngle*180/Math.PI+360)%360;
+    const clockHour=(Math.round((icmDeg2+15)/30))%12||12;
+    const icmPos=icmOk?'9 oclock OK':clockHour+' oclock -- rotate to 9';
+    document.getElementById('hIcm').textContent='ICM: '+icmPos;
+    document.getElementById('hIcmLine').className='tb-item'+(icmOk?'':' warn');
+    // Update ICM needle on mini dial
+    const needle=document.getElementById('icmNeedle');
+    if(needle){
+      const needleR=7;
+      const nx=9+Math.cos(S.icmAngle)*needleR;
+      const ny=9+Math.sin(S.icmAngle)*needleR;
+      needle.setAttribute('x2',nx.toFixed(1));needle.setAttribute('y2',ny.toFixed(1));
+      needle.setAttribute('stroke',icmOk?'rgba(0,221,114,0.9)':'rgba(255,170,0,0.85)');
+    }
+
+    // LT zone check during drag
+    if(S.ltDrag){
+      const{embX,embY,embR}=EP();
+      checkLT(S.ltX,S.ltY,embX,embY,embR);
+    }
+  }catch(e){
+    // Silently recover — don't let one bad frame stop the loop
+  }
+}
+
+function updateFocusRing(fS){
+  const{embX,embY,embR}=EP();
+  const fr=document.getElementById('focRing');
+  const sz=embR*2.1;
+  fr.style.left=embX+'px';fr.style.top=embY+'px';
+  fr.style.width=sz+'px';fr.style.height=sz+'px';
+  if(fS>0.82){fr.style.borderColor='rgba(0,221,114,0.35)';}
+  else if(fS>0.45){fr.style.borderColor='rgba(255,170,0,0.25)';}
+  else{fr.style.borderColor='rgba(0,221,114,0.0)';}
+}
+
+// ═══════════════════════════════════════
+// PHYSICS
+// ═══════════════════════════════════════
+function updatePhysics(){
+  const dc=DC[diff];
+  const pp=Math.max(0,S.biopsy/100-0.73)*3.8;
+  S.zonaIndent+=(pp+S.bioSuc/100*0.48-S.zonaIndent)*0.09;
+  if(S.biopsy>=77&&S.zoneCut&&S.hernProg>0.5)
+    S.cellStretch+=(S.bioSuc/100*0.96-S.cellStretch)*0.052;
+  else S.cellStretch+=(0-S.cellStretch)*0.09;
+
+  if(S.cellStretch>0.44&&S.cells>=4){S.bridgeFormed=true;S.bridgeLen=Math.min(1,(S.cellStretch-0.44)/0.44);}
+  else S.bridgeLen=Math.max(0,S.bridgeLen-0.018);
+
+  S.blastoC+=(S.cells/10-S.blastoC)*0.015;
+  const tC=S.zonePulses/dc.zP;
+  S.zoneCutGrowth=Math.min(1,S.zoneCutGrowth+Math.max(0,tC-S.zoneCutGrowth)*0.025+0.0015*(tC>0?1:0));
+  S.laserFlash=Math.max(0,S.laserFlash-0.05);
+
+  // Herniation
+  if(S.zoneCut&&S.hernProg<1){
+    S.hernProg=Math.min(1,S.hernProg+0.003);
+    if(S.hernProg>0.7&&S.step===4){
+      nextStep();
+      notify('✓ TE CELLS HERNIATING — advance pipette (▶) and apply SUCTION','good');
+      addScore(100);
+    }
+  }
+
+  // Auto-aspirate
+  if(S.biopsy>=82&&S.bioSuc>36&&S.cells<8&&S.zoneCut&&S.hernProg>0.56){
+    if(S.t%1.5<0.02&&S.bioSuc>46){
+      S.cells=Math.min(8,S.cells+1);
+      updateCellDots();
+      addScore(35);
+      if(S.cells===5&&S.step===5){
+        nextStep();
+        notify(`${S.cells} CELLS IN PIPETTE — pull back gently to stretch bridge, then LASER-CUT junctions`,'good');
+        // Re-arm laser for junction mode
+        const lb=document.getElementById('lBtn');
+        lb.className='laser-btn armed';
+        document.getElementById('lSub').textContent='CUT';
+        document.getElementById('lInfo').textContent='fire on bridge';
+        document.getElementById('hLaserLine').style.display='block';
+        document.getElementById('hLaser').textContent='JUNCTION MODE';
+        ltEl.style.display='block';
+        positionLTAtBridge();
+        addScore(150);
+        toast('◎','5 CELLS ASPIRATED','Now laser-cut junctions');
+      }
+      if(S.cells===8)notify('8 CELLS — maximum. Now laser-cut cell junctions.','warn');
+    }
+  }
+
+  // Over-suction
+  if(S.bioSuc>dc.sucPen&&S.biopsy>70){
+    if(S.t%2.5<0.02)addErr('Excessive suction pressure — risk of cell lysis',8);
+  }
+
+  // Blastocoel HUD
+  const bPct=Math.max(0,100-S.blastoC*100);
+  document.getElementById('bF').style.width=bPct+'%';
+  const bl=S.blastoC>0.65?'COLLAPSED':S.blastoC>0.28?'DEFLATING':'FULL';
+  document.getElementById('bS').textContent=bl;
+  document.getElementById('bF').style.background=S.blastoC>0.65?'var(--r)':S.blastoC>0.28?'var(--o)':'var(--g)';
+  document.getElementById('bS').style.color=S.blastoC>0.65?'rgba(255,61,80,0.7)':S.blastoC>0.28?'rgba(255,170,0,0.7)':'rgba(0,221,114,0.6)';
+}
+
+// ═══════════════════════════════════════
+// LASER TARGET
+// ═══════════════════════════════════════
+const ltEl=document.getElementById('lt');
+ltEl.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();S.ltDrag=true;},{passive:false});
+document.addEventListener('touchmove',e=>{if(!S.ltDrag)return;e.preventDefault();moveLT(e.touches[0].clientX,e.touches[0].clientY);},{passive:false});
+document.addEventListener('touchend',e=>{if(!S.ltDrag)return;S.ltDrag=false;snapLT();},{passive:false});
+ltEl.addEventListener('mousedown',e=>{e.preventDefault();S.ltDrag=true;});
+document.addEventListener('mousemove',e=>{if(S.ltDrag)moveLT(e.clientX,e.clientY);});
+document.addEventListener('mouseup',()=>{if(S.ltDrag){S.ltDrag=false;snapLT();}});
+
+function moveLT(x,y){S.ltX=x;S.ltY=y;ltEl.style.left=x+'px';ltEl.style.top=y+'px';const{embX,embY,embR}=EP();checkLT(x,y,embX,embY,embR);}
+
+function checkLT(x,y,embX,embY,embR){
+  const dx=x-embX,dy=y-embY,dist=Math.sqrt(dx*dx+dy*dy);
+  S.ltAngle=Math.atan2(dy,dx);
+  S.ltOnZona=Math.abs(dist-embR)<14*OBJS[oIdx].m/200;
+  const ep=EP();const icmDx=x-ep.icmX,icmDy=y-ep.icmY;
+  S.ltNearICM=Math.sqrt(icmDx*icmDx+icmDy*icmDy)<ep.icmR*1.5;
+  ltEl.classList.toggle('on',S.ltOnZona);
+  ltEl.classList.toggle('icm',S.ltNearICM);
+}
+
+function snapLT(){
+  const{embX,embY,embR}=EP();
+  S.ltAngle=Math.atan2(S.ltY-embY,S.ltX-embX);
+  S.ltOnZona=true;
+  S.ltX=embX+Math.cos(S.ltAngle)*embR;S.ltY=embY+Math.sin(S.ltAngle)*embR;
+  ltEl.style.left=S.ltX+'px';ltEl.style.top=S.ltY+'px';ltEl.classList.add('on');
+  checkLT(S.ltX,S.ltY,embX,embY,embR);
+  if(S.step===3)notify(S.ltNearICM?'⚠ TARGET NEAR ICM — move opposite (right side)':'Target on zona — fire laser','ln');
+}
+
+function positionLTAtBridge(){
+  const{hernX,hernY,sc}=EP();
+  const bx=hernX+Math.cos(S.zoneCutAngle)*5*sc,by=hernY;
+  S.ltX=bx;S.ltY=by;ltEl.style.left=bx+'px';ltEl.style.top=by+'px';
+  S.ltOnZona=true;S.ltNearICM=false;ltEl.classList.add('on');ltEl.classList.remove('icm');
+  notify('Laser target on cell bridge — fire to cut junctions near pipette tip','ln');
+}
+
+// ═══════════════════════════════════════
+// JOYSTICK
+// ═══════════════════════════════════════
+const jEl=document.getElementById('joy'),jkEl=document.getElementById('jk');
+let jOrig={x:0,y:0};const jMax=22;
+S.joyActive=false;S.joyX=0;S.joyY=0;
+jEl.addEventListener('touchstart',e=>{e.preventDefault();S.joyActive=true;const r=jEl.getBoundingClientRect();jOrig={x:r.left+r.width/2,y:r.top+r.height/2};},{passive:false});
+jEl.addEventListener('touchmove',e=>{e.preventDefault();if(!S.joyActive)return;const t=e.touches[0];let dx=t.clientX-jOrig.x,dy=t.clientY-jOrig.y;const d=Math.sqrt(dx*dx+dy*dy);if(d>jMax){dx=dx/d*jMax;dy=dy/d*jMax;}S.joyX=dx/jMax;S.joyY=dy/jMax;jkEl.style.left=(50+(dx/jMax)*40)+'%';jkEl.style.top=(50+(dy/jMax)*40)+'%';},{passive:false});
+['touchend','touchcancel'].forEach(ev=>jEl.addEventListener(ev,e=>{e.preventDefault();S.joyActive=false;S.joyX=0;S.joyY=0;jkEl.style.left='50%';jkEl.style.top='50%';},{passive:false}));
+
+// ═══════════════════════════════════════
+// HOLD PEDAL
+// ═══════════════════════════════════════
+const hPed=document.getElementById('hPed');
+let hInt=null;
+function startHold(){if(!S.live)return;S.holdActive=true;S.holdSuc=Math.max(S.holdSuc,5);hPed.classList.add('pressing');hInt=setInterval(()=>{S.holdSuc=Math.min(100,S.holdSuc+3.5);document.getElementById('hPedLbl').textContent=`${Math.round(S.holdSuc)}%`;},60);}
+function stopHold(){S.holdActive=false;hPed.classList.remove('pressing');clearInterval(hInt);const r=setInterval(()=>{S.holdSuc=Math.max(0,S.holdSuc-2.5);document.getElementById('hPedLbl').textContent=S.holdSuc>0?`${Math.round(S.holdSuc)}%`:'HOLD';document.getElementById('hSucPa') && (document.getElementById('hSucPa').textContent=`${Math.round(S.holdSuc*0.5)} Pa`);if(S.holdSuc<=0)clearInterval(r);},80);}
+hPed.addEventListener('touchstart',e=>{e.preventDefault();startHold();},{passive:false});
+hPed.addEventListener('touchend',e=>{e.preventDefault();stopHold();},{passive:false});
+hPed.addEventListener('touchcancel',e=>{e.preventDefault();stopHold();},{passive:false});
+hPed.addEventListener('mousedown',startHold);hPed.addEventListener('mouseup',stopHold);hPed.addEventListener('mouseleave',stopHold);
+
+// ═══════════════════════════════════════
+// BIOPSY SUCTION PEDAL
+// ═══════════════════════════════════════
+const sPed=document.getElementById('sPed');
+let sInt=null;
+function startSuc(){
+  if(!S.live)return;
+  if(S.biopsy<72){notify('⚠ Advance pipette (▶) to herniated cells first','warn');addErr('Suction before pipette positioned',5);return;}
+  if(!S.zoneCut){notify('⚠ Laser-drill zona first','warn');addErr('Suction before zona cut',8);return;}
+  sPed.classList.add('pressing');
+  sInt=setInterval(()=>{S.bioSuc=Math.min(100,S.bioSuc+3);document.getElementById('sPedLbl').textContent=`${Math.round(S.bioSuc)}%`;},60);
+}
+function stopSuc(){sPed.classList.remove('pressing');clearInterval(sInt);const r=setInterval(()=>{S.bioSuc=Math.max(0,S.bioSuc-2.5);document.getElementById('sPedLbl').textContent=S.bioSuc>0?`${Math.round(S.bioSuc)}%`:'SUCTION';if(S.bioSuc<=0)clearInterval(r);},80);}
+sPed.addEventListener('touchstart',e=>{e.preventDefault();startSuc();},{passive:false});
+sPed.addEventListener('touchend',e=>{e.preventDefault();stopSuc();},{passive:false});
+sPed.addEventListener('touchcancel',e=>{e.preventDefault();stopSuc();},{passive:false});
+sPed.addEventListener('mousedown',startSuc);sPed.addEventListener('mouseup',stopSuc);sPed.addEventListener('mouseleave',stopSuc);
+
+// ═══════════════════════════════════════
+// LASER
+// ═══════════════════════════════════════
+const lBtn=document.getElementById('lBtn');
+function fireLaser(){
+  if(!S.live)return;
+  const dc=DC[diff];
+  // Step 3 — zona drilling
+  // Accept step 2 as well (ICM just positioned, user may tap laser immediately)
+  if(S.step===3||S.step===2){
+    if(!S.ltOnZona){notify('⚠ Drag the red ✦ target onto the zona wall first','warn');return;}
+    if(S.ltNearICM&&dc.icmP){notify('⚠ LASER TOO CLOSE TO ICM — move target to opposite side','alert');addErr('Laser near ICM',20);flash('red');return;}
+    if(!S.icmOk&&dc.icmP){notify('⚠ Position ICM to 9 o\'clock first (use HOLD + joystick)','warn');return;}
+    // Temperature: warn but don't block — just penalise (realistic: lab may fire before full equilibration)
+    if(!S.tempOk){notify('⚠ Stage not at 37°C — firing anyway (−5 pts)','warn');S.penalties+=5;}
+    // If still in step 2, auto-advance to step 3
+    if(S.step===2){nextStep();}
+    // Real Zilos behavior: brief arming delay then auto-fire pulse
+    if(S._laserArmed){return;} // already priming
+    S._laserArmed=true;
+    lBtn.classList.add('firing');
+    document.getElementById('lSub').textContent='⚡';
+    setTimeout(()=>{
+      S._laserArmed=false;
+      if(!S.live||S.zoneCut)return;
+      S.zonePulses++;S.laserFlash=1;S.zoneCutAngle=S.ltAngle;
+      flash('white');addScore(45);
+      const rem=dc.zP-S.zonePulses;
+      lBtn.classList.remove('firing');
+      document.getElementById('lSub').textContent='LASER';
+      if(rem>0){
+        notify(`✦ PULSE ${S.zonePulses}/${dc.zP} — tap again for next pulse`,'ln');
+        document.getElementById('lInfo').textContent=`${rem} more`;
+        lBtn.classList.add('armed');
+      } else {
+        S.zoneCut=true;
+        lBtn.className='laser-btn done';document.getElementById('lSub').textContent='DONE';
+        document.getElementById('lInfo').textContent='zona open';
+        setTimeout(()=>{
+          nextStep();notify('✓ ZONA OPEN — wait for TE cells to herniate','good');
+          document.getElementById('hLaser').textContent='ZONA OPEN ✓';
+          document.getElementById('hLaserLine').style.display='none';
+          addScore(220);toast('⚡','ZONA BREACHED','Clean cut — excellent');
+        },400);
+      }
+    },320); // 320ms arming delay — feels like real system
+    return;
+  }
+  // Step 6 — junction cutting (pulling method — fire at cell bridge near pipette tip)
+  if(S.step===6){
+    if(S.cells<5){notify('⚠ Aspirate at least 5 cells first','warn');return;}
+    if(!S.bridgeFormed){notify('⚠ Hold SUCTION longer to stretch cell bridge','warn');return;}
+    if(S._laserArmed){return;}
+    S._laserArmed=true;
+    lBtn.classList.add('firing');document.getElementById('lSub').textContent='⚡';
+    setTimeout(()=>{
+      S._laserArmed=false;
+      if(!S.live)return;
+      S.juncPulses++;S.laserFlash=0.85;flash('white');addScore(65);
+      lBtn.classList.remove('firing');document.getElementById('lSub').textContent='CUT';
+      if(S.juncPulses>=dc.jP){
+        S.juncCut=true;S.pullStretch=0;S.pullWarned=false;
+        lBtn.className='laser-btn done';document.getElementById('lSub').textContent='DONE';
+        setTimeout(()=>{
+          nextStep();notify('✓ JUNCTIONS CUT — retract pipette ◀ to secure specimen','good');
+          addScore(260);toast('🧬','SPECIMEN EXCISED','Junction cut complete');
+        },380);
+      } else {
+        lBtn.classList.add('armed');
+        notify(`✦ JUNCTION PULSE ${S.juncPulses}/${dc.jP} — tap again close to pipette tip`,'ln');
+      }
+    },280);
+    return;
+  }
+  notify('⚠ Laser not needed at this step','warn');addErr('Laser fired at wrong step',5);
+}
+lBtn.addEventListener('touchstart',e=>{e.preventDefault();fireLaser();},{passive:false});
+lBtn.addEventListener('click',fireLaser);
+
+// ═══════════════════════════════════════
+// PIPETTE ADVANCE (buttons, not slider)
+// ═══════════════════════════════════════
+// ═══════════════════════════════════════
+// OBJECTIVE / ZOOM
+// ═══════════════════════════════════════
+function chObj(dir){
+  const prev=oIdx;
+  oIdx=Math.max(0,Math.min(OBJS.length-1,oIdx+dir));
+  const obj=OBJS[oIdx];
+  document.getElementById('oDisp').textContent=obj.m+'×';
+  const od3=document.getElementById('oDispFocus');if(od3)od3.textContent=obj.n+' · '+obj.m+'×';
+  document.getElementById('hMag').textContent=obj.m+'×';
+  document.getElementById('hObj').textContent=obj.n;
+  const od2=document.getElementById('oDispFocus');if(od2)od2.textContent=obj.n+' · '+obj.m+'×';
+  const bMicrons=Math.round(100*(200/obj.m));
+  // Only shift focus and notify if actually changed during a live session
+  if(oIdx===prev||!S.live)return;
+  // Changing objective shifts focus (different working distance per lens)
+  const shift=16+Math.random()*24;
+  const d2=Math.random()>0.5?1:-1;
+  const nF=Math.max(3,Math.min(97,S.focus+d2*shift));
+  document.getElementById('fk').value=nF;
+  S.focus=nF;
+  S.focusLocked=false; // must re-focus on new lens
+  notify(obj.n+' — refocus required ('+['WD 30mm','WD 10mm','WD 4.7mm','WD 2.1mm'][oIdx]+')','warn');
+}
+
+let pipInt=null;
+function pipStep(dir){
+  const prev=S.biopsy;
+  S.biopsy=Math.max(0,Math.min(100,S.biopsy+dir*3.5));
+  updatePipHUD();
+
+  // BRIDGE PULL — retracting in step 6 without laser cut shows cell string stretching
+  if(dir>0&&S.step===6&&!S.juncCut&&S.cells>=5){
+    // Pulling back without cutting — stretch increases
+    S.pullStretch=Math.min(1,S.pullStretch+(prev-S.biopsy)/100*2.5);
+    if(S.pullStretch>0.3&&!S.pullWarned){
+      S.pullWarned=true;
+      notify('⚠ CELLS STILL ATTACHED — fire LASER to cut the junction bridge!','alert');
+      flash('red');
+    }
+    if(S.pullStretch>0.85){
+      // Pulled too far — cells snap back, embryo damaged
+      S.pullStretch=0;S.cells=Math.max(0,S.cells-2);
+      updateCellDots();
+      addErr('Cells pulled free without laser cut — specimen damaged',25);
+      notify('✗ CELLS TORN — laser-cut junction before retracting','alert');
+      flash('red');
+    }
+  } else if(dir<0){
+    // Advancing again — release pull tension
+    S.pullStretch=Math.max(0,S.pullStretch-0.15);
+  }
+
+  // Retraction complete = done
+  if(S.step===7&&S.biopsy<12&&S.juncCut&&!S.procedureDone){
+    S.procedureDone=true;addScore(300);
+    toast('🏆','BIOPSY COMPLETE','PGT specimen secured');
+    notify('✓ SPECIMEN SECURED — prep for vitrification','good');
+    setTimeout(showDebrief,2000);
+  }
+}
+// Hold to advance/retract continuously
+// Pipette touch handlers — advance = pipIn (▶), retract = pipOut (◀)
+function bindPipBtn(id,dir){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.addEventListener('touchstart',e=>{e.preventDefault();pipCont(dir);},{passive:false});
+  el.addEventListener('touchend',e=>{e.preventDefault();clearInterval(pipInt);},{passive:false});
+  el.addEventListener('touchcancel',e=>{e.preventDefault();clearInterval(pipInt);},{passive:false});
+}
+bindPipBtn('pipIn',-1);   // ▶ = advance = decrease biopsy value (tip moves right)
+bindPipBtn('pipOut',+1);  // ◀ = retract = increase biopsy value (tip moves left)
+function pipCont(dir){clearInterval(pipInt);pipStep(dir);pipInt=setInterval(()=>pipStep(dir),100);}
+
+function updatePipHUD(){
+  const v=S.biopsy;
+  const ls=['RET','ADV','ADV','POS','TARGET'];
+  document.getElementById('pipV').textContent=ls[Math.min(4,Math.floor(v/22))];
+  const ret=document.getElementById('ret');
+  if(S.step>4)ret.style.display='block';
+  if(v>=80)ret.classList.add('lock');else ret.classList.remove('lock');
+}
+
+// ═══════════════════════════════════════
+// HUD UPDATES
+// ═══════════════════════════════════════
+function updateFocusHUD(fS){
+  const pct=Math.round(fS*100);
+  document.getElementById('fbF').style.width=pct+'%';
+  let c,t;
+  if(fS>0.82){c='var(--g)';t='SHARP ✓';}
+  else if(fS>0.42){c='var(--o)';t='FOCUSING';}
+  else{c='var(--r)';t='BLURRED';}
+  document.getElementById('fbF').style.background=c;
+  document.getElementById('fbS').textContent=t;
+  document.getElementById('fbS').style.color=c;
+  document.getElementById('fv').textContent=`${((S.focus/100-OBJS[oIdx].fOpt)*10).toFixed(1)}μm`;
+  const opt=OBJS[oIdx].fOpt,zW=10;
+  document.getElementById('fbZ').style.left=`${Math.max(0,opt*100-zW/2)}%`;
+  document.getElementById('fbZ').style.width=`${zW}%`;
+}
+
+function updateTempHUD(){
+  const t=S.temp,pct=(t-35)/(37-35)*100;
+  document.getElementById('tF').style.width=`${Math.max(0,Math.min(100,pct))}%`;
+  const c=t>=37?'var(--g)':t>36.2?'var(--o)':'var(--r)';
+  document.getElementById('tF').style.background=c;
+  document.getElementById('tV').textContent=`${t.toFixed(1)}°C${t>=37?' ✓':' ↑'}`;
+  document.getElementById('tV').style.color=c;
+  document.getElementById('hTemp').textContent=`${t.toFixed(1)}°C`;
+  document.getElementById('hTemp').style.color=c;
+}
+
+function updateCellDots(){
+  const box=document.getElementById('cellStrip');
+  if(!box.children.length){
+    box.classList.add('show');
+    for(let i=0;i<8;i++){const d=document.createElement('div');d.className='cdot';d.id=`cd${i}`;box.appendChild(d);}
+  }
+  for(let i=0;i<8;i++){
+    const d=document.getElementById(`cd${i}`);
+    if(!d)continue;
+    if(i<S.cells)d.className='cdot full';
+    else if(i===S.cells&&S.step>=5)d.className='cdot next';
+    else d.className='cdot';
+  }
+}
+
+// ═══════════════════════════════════════
+// PROCEDURE FLOW
+// ═══════════════════════════════════════
+const PHASES=[
+  '',
+  'STEP 1 — Warm stage · Focus zona pellucida',
+  'STEP 2 — HOLD embryo · Rotate ICM to 9 oclock',
+  'STEP 3 — Drag laser target · Fire to drill zona',
+  'STEP 4 — Waiting for TE herniation...',
+  'STEP 5 — Advance pipette ▶ · Hold SUCTION pedal',
+  'STEP 6 — Stretch bridge · LASER-CUT junctions',
+  'STEP 7 — Retract pipette ◀ · Secure specimen',
+];
+const PCLS=['','warn','warn','laser','warn','','laser','good'];
+function nextStep(){
+  S.step++;
+  const sb=document.getElementById('stepBox');
+  sb.textContent=PHASES[S.step]||'PROCEDURE COMPLETE';
+  sb.className=PCLS[S.step]||'';
+  sb.classList.add('pulse');setTimeout(()=>sb.classList.remove('pulse'),400);
+}
+
+// ═══════════════════════════════════════
+// SCORING
+// ═══════════════════════════════════════
+function addScore(n){S.score+=n;}
+function addErr(msg,pen){S.penalties+=pen;if(!S.errSet.has(msg)){S.errSet.add(msg);S.errors.push(msg);}flash('red');}
+
+// ═══════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════
+function notify(msg,type=''){
+  const el=document.getElementById('notif');
+  el.textContent=msg;el.className='notif show'+(type?' '+type:'');
+  if(S.notifT)clearTimeout(S.notifT);
+  S.notifT=setTimeout(()=>el.classList.remove('show'),3800);
+}
+function toast(icon,title,sub){
+  document.getElementById('tIcon').textContent=icon;
+  document.getElementById('tTitle').textContent=title;
+  document.getElementById('tSub').textContent=sub;
+  const t=document.getElementById('toast');t.classList.add('show');
+  if(S.toastT)clearTimeout(S.toastT);
+  S.toastT=setTimeout(()=>t.classList.remove('show'),2200);
+}
+function flash(type){
+  const f=document.getElementById('flash');
+  f.style.background=type==='red'?'rgba(255,40,0,0.14)':'rgba(255,240,200,0.16)';
+  f.style.opacity='1';setTimeout(()=>f.style.opacity='0',type==='red'?180:110);
+}
+
+// ═══════════════════════════════════════
+// DEBRIEF
+// ═══════════════════════════════════════
+function showDebrief(){
+  const focSc=S.focusLocked?100:40;
+  const icmSc=S.icmOk?100:20;
+  const lasSc=S.zoneCut?(S.ltNearICM?55:100):0;
+  const celSc=Math.min(100,S.cells*12+(S.juncCut?20:0));
+  const blaSc=Math.max(0,100-Math.round(S.blastoC*100));
+  const penSc=Math.max(0,100-S.penalties*2.5);
+  const total=Math.round((focSc+icmSc+lasSc+celSc+blaSc+penSc)/6);
+  const grand=Math.min(100,total+Math.round(S.score/40));
+  const stars=grand>=90?5:grand>=78?4:grand>=65?3:grand>=50?2:1;
+  const grade=grand>=90?'A+':grand>=80?'A':grand>=70?'B':grand>=60?'C':'D';
+  const gradeCol=grand>=80?'var(--g)':grand>=65?'var(--o)':'var(--r)';
+  const subs={'A+':'Outstanding. Embryo intact. Specimen ready for PGT.','A':'Excellent. Minor deviations. Viable result.','B':'Good. Review ICM positioning and suction timing.','C':'Acceptable. Practice laser accuracy.','D':'Significant errors. Repeat before clinical work.'};
+
+  document.getElementById('dStars').textContent='★'.repeat(stars)+'☆'.repeat(5-stars);
+  document.getElementById('dStars').style.color=grade==='A+'?'var(--o)':'var(--g)';
+  document.getElementById('dGrade').textContent=`${grade} · ${grand}`;
+  document.getElementById('dGrade').style.color=gradeCol;
+  document.getElementById('dSub').textContent=subs[grade];
+
+  const vals=[focSc,icmSc,lasSc,celSc,blaSc,S.penalties];
+  for(let i=0;i<6;i++){
+    document.getElementById(`dv${i+1}`).textContent=i<5?vals[i]+'%':vals[i];
+    const v=i<5?vals[i]:Math.max(0,100-vals[i]*3);
+    document.getElementById(`dc${i+1}`).className='d-card'+(v>=80?'':v>=60?' w':' a');
+  }
+
+  const el=document.getElementById('dErrs');
+  el.innerHTML=S.errors.length
+    ?S.errors.map(e=>`<div class="d-err">${e}</div>`).join('')
+    :'<div class="d-ok">✓ No errors recorded</div>';
+
+  document.getElementById('mOv').style.display='none';
+  document.getElementById('dOv').style.display='flex';
+}
+
+// ═══════════════════════════════════════
+// START / MENU
+// ═══════════════════════════════════════
+function setDiff(d){
+  diff=d;
+  ['e','m','h'].forEach(k=>document.getElementById('d'+k.toUpperCase()).classList.toggle('sel',k===d));
+}
+
+let firstSession=true;
+function beginSession(){
+  document.getElementById('mOv').style.display='none';
+  if(firstSession){firstSession=false;document.getElementById('controlHint').style.display='flex';}
+  else startSim();
+}
+function dismissHint(){document.getElementById('controlHint').style.display='none';startSim();}
+
+function startSim(){
+  document.getElementById('mOv').style.display='none';
+  document.getElementById('dOv').style.display='none';
+  document.getElementById('controlHint').style.display='none';
+
+  S=fresh();S.live=true;S.startT=Date.now();S.step=1;
+  S.focus=38; // start slightly out of focus — embryo visible but needs fine adjustment
+  // Restore joystick refs
+  S.joyActive=false;S.joyX=0;S.joyY=0;
+
+  // Show UI
+  document.getElementById('cp').style.display='block';
+  document.getElementById('focBar').classList.add('show');
+  document.getElementById('blastoBar').classList.add('show');
+  document.getElementById('tempBadge').classList.add('show');
+
+  // Reset controls
+  document.getElementById('fk').value=38;
+  document.getElementById('hPedLbl').textContent='HOLD';
+  document.getElementById('sPedLbl').textContent='SUCTION';
+  document.getElementById('lBtn').className='laser-btn armed';
+  document.getElementById('lSub').textContent='LASER';
+  document.getElementById('lInfo').textContent='position first';
+  document.getElementById('hLaserLine').style.display='block';
+  document.getElementById('hLaser').textContent='LASER ARMED';
+  document.getElementById('hLaserLine').style.color='';
+  document.getElementById('pipV').textContent='RET';
+  document.getElementById('ret').style.display='none';
+  document.getElementById('ret').classList.remove('lock');
+  ltEl.style.display='none';ltEl.classList.remove('on','icm');
+  document.getElementById('cellStrip').classList.remove('show');
+  document.getElementById('cellStrip').innerHTML='';
+  document.getElementById('toast').classList.remove('show');
+  document.getElementById('stepBox').textContent=PHASES[1];
+  document.getElementById('stepBox').className='warn';
+
+  // Refresh objective display
+  const obj=OBJS[oIdx];
+  document.getElementById('hMag').textContent=obj.m+'×';
+  document.getElementById('hObj').textContent=obj.n;
+  document.getElementById('oDisp').textContent=obj.m+'×';
+  const od3=document.getElementById('oDispFocus');if(od3)od3.textContent=obj.n+' · '+obj.m+'×';
+
+  notify('STEP 1 — Wait for 37°C · Fine-tune FOCUS until zona is sharp','warn');
+  onFocus(38);
+}
+
+function toMenu(){
+  S.live=false;
+  document.getElementById('dOv').style.display='none';
+  document.getElementById('cp').style.display='none';
+  document.getElementById('focBar').classList.remove('show');
+  document.getElementById('blastoBar').classList.remove('show');
+  document.getElementById('tempBadge').classList.remove('show');
+  document.getElementById('mOv').style.display='flex';
+}
+
+function onFocus(v){
+  S.focus=v;
+  if(!S.live)return;
+  const d=((v/100-OBJS[oIdx].fOpt)*10).toFixed(1);
+  document.getElementById('fv').textContent=`${d>0?'+':''}${d}μm`;
+}
+
+// ═══════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════
+loop();
+</script>
+</body>
+</html>
