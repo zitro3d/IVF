@@ -1716,8 +1716,10 @@ function loop(){
     const dc=DC[diff];
     const obj=OBJS[oIdx];
 
-    // Joystick
-    if(S.joyActive){
+    // Joystick — pans the stage to centre the embryo. But while the embryo
+    // is GRIPPED (holding pipette engaged), the joystick rotates it instead,
+    // so the stage stays put during the grip-and-rotate combo.
+    if(S.joyActive && S.holdSuc<=8){
       S.stX=Math.max(-100,Math.min(100,S.stX+S.joyX*1.1));
       S.stY=Math.max(-100,Math.min(100,S.stY+S.joyY*1.1));
     }
