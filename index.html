@@ -498,6 +498,46 @@ html,body{
   padding:11px 20px;background:transparent;border:1px solid rgba(0,221,114,0.25);color:rgba(0,221,114,0.45);
   font-family:var(--mono);font-size:8px;letter-spacing:2px;cursor:pointer;border-radius:2px;touch-action:manipulation;
 }
+.d-outcome{
+  padding:12px 22px;background:rgba(255,176,32,0.06);border:1px solid var(--o-dim);color:var(--o);
+  font-family:var(--mono);font-size:9.5px;letter-spacing:2px;cursor:pointer;border-radius:3px;touch-action:manipulation;
+  box-shadow:0 0 16px rgba(255,176,32,0.12);transition:all .2s var(--ease);
+  animation:goPulse 2.6s ease-in-out infinite;
+}
+.d-outcome:hover{background:rgba(255,176,32,0.12);}
+.d-outcome:active{transform:scale(0.97);}
+
+/* ── DAY-8 OUTCOME EPILOGUE ── */
+#oOv{background:radial-gradient(ellipse 80% 60% at 50% 35%,rgba(0,30,20,0.6),rgba(0,4,3,0.98) 78%);display:none;}
+.o-day{font-size:9px;letter-spacing:3px;color:var(--g-dim);text-align:center;}
+.o-card{
+  width:100%;max-width:330px;border-radius:5px;padding:12px 15px;
+  display:flex;flex-direction:column;gap:5px;border:1px solid var(--g-faint);
+  background:rgba(0,232,122,0.04);
+}
+.o-card-h{font-size:8px;letter-spacing:2.5px;color:var(--g-faint);}
+.o-verdict{font-size:17px;letter-spacing:1.5px;line-height:1.15;}
+.o-detail{font-size:9.5px;letter-spacing:.5px;line-height:1.55;color:rgba(0,232,122,0.7);}
+/* state colours applied via .good/.warn/.bad */
+.o-card.good{border-color:var(--g-dim);box-shadow:0 0 16px rgba(0,232,122,0.12);}
+.o-card.good .o-verdict{color:var(--g);}
+.o-card.warn{border-color:var(--o-dim);box-shadow:0 0 16px rgba(255,176,32,0.12);background:rgba(255,176,32,0.05);}
+.o-card.warn .o-verdict{color:var(--o);}
+.o-card.warn .o-card-h,.o-card.warn .o-detail{color:rgba(255,176,32,0.7);}
+.o-card.bad{border-color:var(--r-dim);box-shadow:0 0 16px rgba(255,61,80,0.14);background:rgba(255,61,80,0.05);}
+.o-card.bad .o-verdict{color:var(--r);}
+.o-card.bad .o-card-h,.o-card.bad .o-detail{color:rgba(255,61,80,0.72);}
+.o-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%;max-width:330px;}
+.o-m{background:rgba(0,232,122,0.03);border:1px solid var(--g-faint);border-radius:3px;padding:7px 3px;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.o-mv{font-size:13px;color:var(--g);letter-spacing:1px;}
+.o-mv.warn{color:var(--o);}
+.o-mv.bad{color:var(--r);}
+.o-ml{font-size:6px;letter-spacing:1px;color:var(--g-faint);text-align:center;}
+.o-note{
+  width:100%;max-width:330px;font-size:9.5px;line-height:1.65;letter-spacing:.4px;
+  color:rgba(0,232,122,0.72);text-align:center;
+  border-left:2px solid var(--g-faint);padding:4px 0 4px 11px;
+}
 
 /* DEBRIEF — rank row, session stats, XP bar */
 .d-rankrow{display:flex;gap:10px;align-items:center;justify-content:center;min-height:18px;}
@@ -899,9 +939,47 @@ html,body{
     <div class="d-card" id="dc6"><div class="d-val" id="dv6">0</div><div class="d-lbl">ERRORS</div></div>
   </div>
   <div class="d-errs" id="dErrs"></div>
+  <button class="d-outcome" onclick="showOutcome()">DAY&nbsp;8 — LAB &amp; PGT RESULT →</button>
   <div class="d-btns">
     <button class="d-again" onclick="startSim()">REPEAT</button>
     <button class="d-menu" onclick="toMenu()">MENU</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     DAY-8 OUTCOME EPILOGUE (additive)
+     Reveals the clinical consequences of the run:
+     embryo survival after warming + whether the biopsy
+     yielded a usable PGT result. Driven entirely by the
+     existing session state — does not alter the procedure.
+════════════════════════════════ -->
+<div class="ov" id="oOv">
+  <div class="o-day">▸ DAY 8 · POST-BIOPSY LABORATORY OUTCOME</div>
+
+  <div class="o-card" id="oSurvCard">
+    <div class="o-card-h">EMBRYO · POST-WARMING</div>
+    <div class="o-verdict" id="oSurv">—</div>
+    <div class="o-detail" id="oSurvD">—</div>
+  </div>
+
+  <div class="o-card" id="oPgtCard">
+    <div class="o-card-h">PGT-A · GENETIC RESULT</div>
+    <div class="o-verdict" id="oPgt">—</div>
+    <div class="o-detail" id="oPgtD">—</div>
+  </div>
+
+  <div class="o-metrics">
+    <div class="o-m"><div class="o-mv" id="omCells">—</div><div class="o-ml">CELLS</div></div>
+    <div class="o-m"><div class="o-mv" id="omTime">—</div><div class="o-ml">BENCH TIME</div></div>
+    <div class="o-m"><div class="o-mv" id="omTrauma">—</div><div class="o-ml">EMBRYO STRESS</div></div>
+    <div class="o-m"><div class="o-mv" id="omAmp">—</div><div class="o-ml">DNA YIELD</div></div>
+  </div>
+
+  <div class="o-note" id="oNote">—</div>
+
+  <div class="d-btns">
+    <button class="d-menu" onclick="backToDebrief()">← SCORECARD</button>
+    <button class="d-again" onclick="startSim()">NEW CASE</button>
   </div>
 </div>
 
@@ -2211,6 +2289,112 @@ function showDebrief(){
 }
 
 // ═══════════════════════════════════════
+// DAY-8 OUTCOME EPILOGUE
+// Translates how the run was performed into its real clinical
+// consequences. Two independent outcomes:
+//   1. Did the EMBRYO survive warming?  (driven by trauma:
+//      laser-near-ICM, bench time, over-suction, over-biopsy)
+//   2. Did the biopsy yield a usable PGT RESULT?  (driven by
+//      specimen quality: cell count, completion, lysis)
+// The case's true ploidy (S.trueEuploid) is fixed biology and is
+// only *revealed* when technique was clean enough to read it.
+// ═══════════════════════════════════════
+function computeOutcome(){
+  const has=m=>S.errSet.has(m);
+  const nearICM=has('Laser near ICM');
+  const torn=has('Cells pulled free without laser cut — specimen damaged');
+  const overSuc=has('Excessive suction pressure — risk of cell lysis');
+  const cells=S.cells, complete=S.procedureDone, time=S.elapsed;
+
+  // ── Embryo trauma (0..1) — higher is worse ──
+  let trauma=0;
+  if(nearICM)trauma+=0.45;                         // thermal injury to ICM is severe
+  if(time>240)trauma+=0.25; else if(time>150)trauma+=0.10; // prolonged bench exposure
+  if(cells>=8)trauma+=0.12;                          // over-biopsy removes too much TE
+  if(overSuc)trauma+=0.12;
+  trauma+=Math.min(0.25,S.penalties*0.008);
+  trauma+=S.blastoC>0.7?0.05:0;                      // failure to re-expand cue
+  trauma=Math.min(1,trauma);
+
+  // ── Specimen quality → DNA yield / amplification ──
+  let amp;                                           // 'good' | 'low' | 'fail'
+  if(!complete||cells<3)amp='fail';
+  else if(cells>=5&&!torn)amp='good';
+  else amp='low';                                    // 3–4 cells, or torn specimen
+
+  // ── PGT result ──
+  // No usable DNA → no result. Marginal specimen → ambiguous (no-call /
+  // low-confidence mosaic). Clean specimen → the true status is read out.
+  let pgt, pgtClass, pgtDetail;
+  if(amp==='fail'){
+    pgt='NO RESULT';pgtClass='bad';
+    pgtDetail=complete? 'Amplification failed — too few cells to test. Embryo must be re-biopsied.'
+                      : 'Procedure incomplete — no specimen reached the tube.';
+  } else if(amp==='low'||nearICM){
+    pgt='NO CALL';pgtClass='warn';
+    pgtDetail='Marginal specimen gave a low-confidence / inconclusive read. Re-biopsy advised before transfer.';
+  } else {
+    pgt=S.trueEuploid?'EUPLOID':'ANEUPLOID';
+    pgtClass=S.trueEuploid?'good':'warn';
+    pgtDetail=S.trueEuploid? 'Clean specimen, confident result. Embryo is chromosomally normal — suitable for transfer.'
+                           : 'Clean specimen, confident result. Abnormal chromosome complement — not for transfer (correctly identified).';
+  }
+
+  // ── Embryo survival after warming ──
+  let surv, survClass, survDetail;
+  if(trauma<0.25){surv='SURVIVED · RE-EXPANDED';survClass='good';survDetail='Blastocyst re-expanded fully after warming. Viability preserved.';}
+  else if(trauma<0.5){surv='REDUCED VIABILITY';survClass='warn';survDetail='Slow re-expansion and cell stress noted. Implantation potential likely lowered.';}
+  else{surv='DID NOT SURVIVE';survClass='bad';survDetail='Excess thermal / mechanical trauma — embryo degenerated after warming.';}
+
+  return{trauma,amp,pgt,pgtClass,pgtDetail,surv,survClass,survDetail,cells,time,nearICM,torn,complete};
+}
+
+function showOutcome(){
+  const o=computeOutcome();
+  const set=(id,txt)=>{$(id).textContent=txt;};
+
+  // Survival card
+  $('oSurvCard').className='o-card '+o.survClass;
+  set('oSurv',o.surv);set('oSurvD',o.survDetail);
+
+  // PGT card
+  $('oPgtCard').className='o-card '+o.pgtClass;
+  set('oPgt',o.pgt);set('oPgtD',o.pgtDetail);
+
+  // Metric strip
+  const mm=Math.floor(o.time/60),ss=o.time%60;
+  set('omCells',o.cells);
+  $('omCells').className='o-mv'+(o.cells>=5&&o.cells<8?'':o.cells>=3?' warn':' bad');
+  set('omTime',`${mm}:${ss<10?'0':''}${ss}`);
+  $('omTime').className='o-mv'+(o.time<=150?'':o.time<=240?' warn':' bad');
+  const tr=o.trauma<0.25?'LOW':o.trauma<0.5?'MOD':'HIGH';
+  set('omTrauma',tr);
+  $('omTrauma').className='o-mv'+(o.trauma<0.25?'':o.trauma<0.5?' warn':' bad');
+  const ay=o.amp==='good'?'HIGH':o.amp==='low'?'LOW':'NONE';
+  set('omAmp',ay);
+  $('omAmp').className='o-mv'+(o.amp==='good'?'':o.amp==='low'?' warn':' bad');
+
+  // Coaching note — the single most useful corrective
+  let note;
+  if(!o.complete)note='The procedure was not completed, so no specimen was tubed. A result requires a full, clean excision.';
+  else if(o.nearICM)note='Key lesson: a laser pulse landed near the inner cell mass. Keep the breach and all pulses on the side OPPOSITE the ICM to avoid thermal injury.';
+  else if(o.cells<5)note='Aim for 5+ trophectoderm cells. Below that, DNA amplification often fails and the embryo must be biopsied again.';
+  else if(o.cells>=8)note='You took the maximum cells. Removing more TE than needed adds embryo stress without improving the test — target ~5.';
+  else if(o.time>240)note='Strong technique, but the embryo spent a long time off the incubator. Work efficiently to protect viability.';
+  else if(o.torn)note='Cells were torn rather than cleanly laser-cut, lysing some of the specimen. Always cut the bridge before retracting.';
+  else note='Clean run: ICM protected, ~5 cells, minimal bench time. This is the technique that yields a confident result on a viable embryo.';
+  set('oNote',note);
+
+  $('dOv').style.display='none';
+  $('oOv').style.display='flex';
+}
+
+function backToDebrief(){
+  $('oOv').style.display='none';
+  $('dOv').style.display='flex';
+}
+
+// ═══════════════════════════════════════
 // START / MENU
 // ═══════════════════════════════════════
 function setDiff(d){
@@ -2229,9 +2413,13 @@ function dismissHint(){$('controlHint').style.display='none';startSim();}
 function startSim(){
   $('mOv').style.display='none';
   $('dOv').style.display='none';
+  $('oOv').style.display='none';
   $('controlHint').style.display='none';
 
   S=fresh();S.live=true;S.startT=Date.now();S.step=1;
+  // Predetermine this case's TRUE ploidy (biology, not skill). Whether the
+  // trainee actually obtains a usable result depends on their technique.
+  S.trueEuploid=Math.random()>0.42;
   S.focus=38; // start slightly out of focus — embryo visible but needs fine adjustment
   // Restore joystick refs
   S.joyActive=false;S.joyX=0;S.joyY=0;
@@ -2284,6 +2472,7 @@ function startSim(){
 function toMenu(){
   S.live=false;
   $('dOv').style.display='none';
+  $('oOv').style.display='none';
   $('cp').style.display='none';
   $('focBar').classList.remove('show');
   $('blastoBar').classList.remove('show');
