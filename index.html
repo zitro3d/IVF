@@ -539,6 +539,41 @@ html,body{
   border-left:2px solid var(--g-faint);padding:4px 0 4px 11px;
 }
 
+/* ── TUBING & WITNESSING ── */
+#tOv{background:radial-gradient(ellipse 80% 60% at 50% 35%,rgba(0,30,20,0.6),rgba(0,4,3,0.98) 78%);display:none;}
+.tb-title{font-size:14px;letter-spacing:3px;color:var(--g);text-shadow:0 0 18px rgba(0,232,122,0.3);}
+.tb-sub{font-size:10px;letter-spacing:.5px;line-height:1.6;color:rgba(0,232,122,0.68);text-align:center;max-width:320px;}
+.tb-dish{
+  font-size:9px;letter-spacing:2px;color:var(--g-faint);text-align:center;line-height:1.9;
+  border:1px dashed var(--g-faint);border-radius:5px;padding:9px 22px;background:rgba(0,232,122,0.04);
+}
+.tb-dish b{font-size:18px;letter-spacing:3px;color:var(--g);}
+.tb-prompt{font-size:9px;letter-spacing:1px;color:var(--g-dim);text-align:center;}
+.tb-tubes{display:flex;flex-direction:column;gap:8px;width:100%;max-width:300px;}
+.tb-tube{
+  padding:13px 16px;background:rgba(0,232,122,0.04);border:1px solid var(--g-faint);
+  color:var(--g);font-family:var(--mono);font-size:14px;letter-spacing:3px;
+  border-radius:4px;cursor:pointer;touch-action:manipulation;transition:all .15s var(--ease);
+}
+.tb-tube:hover,.tb-tube:focus-visible{border-color:var(--g);background:rgba(0,232,122,0.1);outline:none;}
+.tb-tube.right{border-color:var(--g);background:rgba(0,232,122,0.18);box-shadow:0 0 16px rgba(0,232,122,0.3);}
+.tb-tube.wrong{border-color:var(--r);background:rgba(255,61,80,0.18);color:var(--r);box-shadow:0 0 16px rgba(255,61,80,0.3);}
+/* Wash & load */
+.tb-carry{display:flex;flex-direction:column;gap:4px;width:100%;max-width:300px;}
+.tb-carry-l{font-size:8px;letter-spacing:2px;color:var(--g-faint);}
+.tb-carry-bar{height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;}
+.tb-carry-fill{height:100%;width:100%;border-radius:3px;background:var(--r);transition:width .4s var(--ease),background .4s var(--ease);}
+.tb-drops{display:flex;gap:8px;align-items:center;width:100%;max-width:320px;justify-content:center;}
+.tb-drop{
+  flex:1;padding:16px 6px;background:rgba(0,232,122,0.04);border:1px solid var(--g-faint);
+  color:var(--g-dim);font-family:var(--mono);font-size:9px;letter-spacing:1px;
+  border-radius:6px;cursor:pointer;touch-action:manipulation;transition:all .15s var(--ease);
+}
+.tb-drop.next{border-color:var(--o);color:var(--o);box-shadow:0 0 12px rgba(255,176,32,0.3);animation:stCur 1.2s ease-in-out infinite;}
+.tb-drop.done{border-color:var(--g);color:var(--g);background:rgba(0,232,122,0.12);}
+.tb-drop.load{background:rgba(255,176,32,0.05);}
+.tb-drop:disabled{opacity:0.4;cursor:not-allowed;}
+
 /* DEBRIEF — rank row, session stats, XP bar */
 .d-rankrow{display:flex;gap:10px;align-items:center;justify-content:center;min-height:18px;}
 .d-rankbadge{
@@ -983,6 +1018,41 @@ html,body{
   </div>
 </div>
 
+<!-- ══════════════════════════════
+     TUBING & WITNESSING (additive)
+     Runs after the biopsy completes, before the scorecard.
+     Two real-world safety tasks: match the patient ID (prevent
+     a sample mix-up) and wash the specimen before loading the
+     PCR tube (prevent contamination). Outcomes feed the Day-8
+     epilogue. The microscope procedure is untouched.
+════════════════════════════════ -->
+<div class="ov" id="tOv">
+  <div class="o-day" id="tbStage">▸ SPECIMEN HANDLING · STEP 1 OF 2</div>
+
+  <!-- PHASE 1 — WITNESSING -->
+  <div id="tbWitness" style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;">
+    <div class="tb-title">IDENTITY WITNESS</div>
+    <div class="tb-sub">Match the specimen to the correct patient tube. A mismatch is a never-event.</div>
+    <div class="tb-dish">DISH / PATIENT ID<br><b id="tbDishId">—</b></div>
+    <div class="tb-prompt">Select the PCR tube with the matching ID:</div>
+    <div class="tb-tubes" id="tbTubes"></div>
+  </div>
+
+  <!-- PHASE 2 — TUBING -->
+  <div id="tbLoad" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;">
+    <div class="tb-title">WASH &amp; LOAD</div>
+    <div class="tb-sub">Pass the cells through both wash drops, then load the tube. Loading early carries media &amp; contaminants over.</div>
+    <div class="tb-carry"><div class="tb-carry-l">CARRYOVER / CONTAMINATION</div>
+      <div class="tb-carry-bar"><div class="tb-carry-fill" id="tbCarry"></div></div>
+    </div>
+    <div class="tb-drops">
+      <button class="tb-drop" id="tbW1" onclick="tubeWash(1)">WASH&nbsp;1</button>
+      <button class="tb-drop" id="tbW2" onclick="tubeWash(2)">WASH&nbsp;2</button>
+      <button class="tb-drop load" id="tbLoadBtn" onclick="tubeLoad()">LOAD&nbsp;TUBE</button>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 // ═══════════════════════════════════════
@@ -1060,6 +1130,10 @@ function fresh(){
     _laserArmed:false,
     pullStretch:0,    // visual bridge stretch when retracting without laser cut
     pullWarned:false, // warned user to laser cut
+    // Post-biopsy lab handling (tubing + witnessing step)
+    witnessOk:true,       // did the trainee tube under the correct patient ID?
+    contamination:1,      // 0 = clean specimen, 1 = raw/unwashed (set during tubing)
+    washes:0,             // wash drops the specimen passed through
   };
 }
 let S=fresh();
@@ -1936,9 +2010,9 @@ function pipStep(dir){
   // Retraction complete = done
   if(S.step===7&&S.biopsy<12&&S.juncCut&&!S.procedureDone){
     S.procedureDone=true;addScore(300);
-    toast('🏆','BIOPSY COMPLETE','PGT specimen secured');
-    notify('✓ SPECIMEN SECURED — prep for vitrification','good');
-    setTimeout(showDebrief,2000);
+    toast('🏆','BIOPSY COMPLETE','Now tube the specimen');
+    notify('✓ SPECIMEN EXCISED — proceed to tubing & witnessing','good');
+    setTimeout(showTubing,2000);   // tubing/witnessing → then the scorecard
   }
 }
 // Hold to advance/retract continuously
@@ -2289,6 +2363,103 @@ function showDebrief(){
 }
 
 // ═══════════════════════════════════════
+// TUBING & WITNESSING
+// Post-excision safety phase. Phase 1: pick the PCR tube whose ID
+// matches the dish (mis-pick = sample mix-up). Phase 2: wash the
+// specimen through two drops before loading (skip = contamination).
+// Results are stored on S and read by computeOutcome().
+// ═══════════════════════════════════════
+function randId(){
+  const L='ABCDEFGHJKLMNPQRTUVWXY';            // no easily-confused chars
+  return L[Math.random()*L.length|0]+'-'+(1000+Math.random()*9000|0);
+}
+function showTubing(){
+  // reset phase state
+  S.witnessOk=true;S.contamination=1;S.washes=0;
+  $('tbStage').textContent='▸ SPECIMEN HANDLING · STEP 1 OF 2';
+  $('tbWitness').style.display='flex';
+  $('tbLoad').style.display='none';
+
+  // PHASE 1 — build a correct ID plus two near-miss decoys
+  const correct=randId();
+  $('tbDishId').textContent=correct;
+  const ids=[correct];
+  while(ids.length<3){
+    // decoys share the structure so the trainee must actually read them
+    const d=Math.random()<0.5
+      ? correct[0]+'-'+(1000+Math.random()*9000|0)            // same letter, different number
+      : randId()[0]+'-'+correct.slice(2);                     // same number, different letter
+    if(!ids.includes(d))ids.push(d);
+  }
+  // shuffle
+  for(let i=ids.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[ids[i],ids[j]]=[ids[j],ids[i]];}
+  const box=$('tbTubes');box.innerHTML='';
+  ids.forEach(id=>{
+    const b=document.createElement('button');
+    b.className='tb-tube';b.textContent=id;
+    b.setAttribute('aria-label','Tube '+id);
+    b.onclick=()=>tubePick(b,id===correct);
+    box.appendChild(b);
+  });
+
+  $('dOv').style.display='none';
+  $('oOv').style.display='none';
+  $('tOv').style.display='flex';
+}
+function tubePick(btn,correct){
+  // lock further picks
+  document.querySelectorAll('#tbTubes .tb-tube').forEach(b=>b.disabled=true);
+  if(correct){
+    btn.classList.add('right');S.witnessOk=true;
+    notify('✓ ID match confirmed — chain of custody intact','good');haptic(20);
+  } else {
+    btn.classList.add('wrong');S.witnessOk=false;
+    addErr('Specimen tubed under the WRONG patient ID',30);
+    notify('✗ ID MISMATCH — this would mislabel the sample','alert');
+  }
+  setTimeout(toTubeLoad,800);
+}
+function toTubeLoad(){
+  $('tbStage').textContent='▸ SPECIMEN HANDLING · STEP 2 OF 2';
+  $('tbWitness').style.display='none';
+  $('tbLoad').style.display='flex';
+  updateCarry();
+  markNextDrop();
+}
+function updateCarry(){
+  const f=$('tbCarry');
+  f.style.width=Math.round(S.contamination*100)+'%';
+  f.style.background=S.contamination<0.25?'var(--g)':S.contamination<0.55?'var(--o)':'var(--r)';
+}
+// Highlight the next correct drop in the wash→load sequence.
+function markNextDrop(){
+  const w1=$('tbW1'),w2=$('tbW2'),load=$('tbLoadBtn');
+  [w1,w2,load].forEach(b=>b.classList.remove('next'));
+  if(S.washes===0)w1.classList.add('next');
+  else if(S.washes===1)w2.classList.add('next');
+  else load.classList.add('next');
+}
+function tubeWash(n){
+  if(n!==S.washes+1){                       // out of order
+    notify('⚠ Use the wash drops in order (1 then 2)','warn');return;
+  }
+  S.washes=n;S.contamination=Math.max(0.08,S.contamination-0.46);
+  $(n===1?'tbW1':'tbW2').classList.add('done');
+  haptic(14);updateCarry();markNextDrop();
+}
+function tubeLoad(){
+  if(S.washes<2){
+    // loading early leaves heavy carryover — allowed, but flagged
+    addErr('Tube loaded before washing — media/contaminant carryover',12);
+    notify('⚠ Loaded early — carryover contamination flagged','warn');
+  } else {
+    notify('✓ Specimen washed and loaded cleanly','good');
+  }
+  $('tbLoadBtn').classList.add('done');haptic([0,20,30,20]);
+  setTimeout(()=>{$('tOv').style.display='none';showDebrief();},700);
+}
+
+// ═══════════════════════════════════════
 // DAY-8 OUTCOME EPILOGUE
 // Translates how the run was performed into its real clinical
 // consequences. Two independent outcomes:
@@ -2322,14 +2493,24 @@ function computeOutcome(){
   else if(cells>=5&&!torn)amp='good';
   else amp='low';                                    // 3–4 cells, or torn specimen
 
+  // ── Post-biopsy lab handling (from the tubing/witnessing step) ──
+  const mixup=!S.witnessOk;                  // tubed under wrong patient ID
+  const contaminated=S.contamination>0.4;    // specimen not adequately washed
+
   // ── PGT result ──
-  // No usable DNA → no result. Marginal specimen → ambiguous (no-call /
-  // low-confidence mosaic). Clean specimen → the true status is read out.
+  // A mix-up is a never-event and supersedes any result. Otherwise:
+  // no DNA → no result; contaminated/marginal → ambiguous; clean → read out.
   let pgt, pgtClass, pgtDetail;
-  if(amp==='fail'){
+  if(mixup){
+    pgt='SAMPLE MIX-UP';pgtClass='bad';
+    pgtDetail='Specimen was tubed under the WRONG patient ID — a never-event. Any result is invalid and unsafe to act on.';
+  } else if(amp==='fail'){
     pgt='NO RESULT';pgtClass='bad';
     pgtDetail=complete? 'Amplification failed — too few cells to test. Embryo must be re-biopsied.'
                       : 'Procedure incomplete — no specimen reached the tube.';
+  } else if(contaminated){
+    pgt='NO CALL';pgtClass='warn';
+    pgtDetail='Contaminant / media carryover from skipped washes corrupted the read. Re-biopsy required.';
   } else if(amp==='low'||nearICM){
     pgt='NO CALL';pgtClass='warn';
     pgtDetail='Marginal specimen gave a low-confidence / inconclusive read. Re-biopsy advised before transfer.';
@@ -2346,7 +2527,7 @@ function computeOutcome(){
   else if(trauma<0.5){surv='REDUCED VIABILITY';survClass='warn';survDetail='Slow re-expansion and cell stress noted. Implantation potential likely lowered.';}
   else{surv='DID NOT SURVIVE';survClass='bad';survDetail='Excess thermal / mechanical trauma — embryo degenerated after warming.';}
 
-  return{trauma,amp,pgt,pgtClass,pgtDetail,surv,survClass,survDetail,cells,time,nearICM,torn,complete};
+  return{trauma,amp,pgt,pgtClass,pgtDetail,surv,survClass,survDetail,cells,time,nearICM,torn,complete,mixup,contaminated};
 }
 
 function showOutcome(){
@@ -2374,9 +2555,11 @@ function showOutcome(){
   set('omAmp',ay);
   $('omAmp').className='o-mv'+(o.amp==='good'?'':o.amp==='low'?' warn':' bad');
 
-  // Coaching note — the single most useful corrective
+  // Coaching note — the single most useful corrective (highest-stakes first)
   let note;
-  if(!o.complete)note='The procedure was not completed, so no specimen was tubed. A result requires a full, clean excision.';
+  if(o.mixup)note='The gravest error: the specimen was labelled to the wrong patient. Always witness the dish-to-tube ID match before tubing — this prevents catastrophic sample mix-ups.';
+  else if(!o.complete)note='The procedure was not completed, so no specimen was tubed. A result requires a full, clean excision.';
+  else if(o.contaminated)note='The cells were loaded before being washed, carrying media and contaminants into the tube. Pass the specimen through both wash drops first.';
   else if(o.nearICM)note='Key lesson: a laser pulse landed near the inner cell mass. Keep the breach and all pulses on the side OPPOSITE the ICM to avoid thermal injury.';
   else if(o.cells<5)note='Aim for 5+ trophectoderm cells. Below that, DNA amplification often fails and the embryo must be biopsied again.';
   else if(o.cells>=8)note='You took the maximum cells. Removing more TE than needed adds embryo stress without improving the test — target ~5.';
@@ -2414,6 +2597,7 @@ function startSim(){
   $('mOv').style.display='none';
   $('dOv').style.display='none';
   $('oOv').style.display='none';
+  $('tOv').style.display='none';
   $('controlHint').style.display='none';
 
   S=fresh();S.live=true;S.startT=Date.now();S.step=1;
@@ -2473,6 +2657,7 @@ function toMenu(){
   S.live=false;
   $('dOv').style.display='none';
   $('oOv').style.display='none';
+  $('tOv').style.display='none';
   $('cp').style.display='none';
   $('focBar').classList.remove('show');
   $('blastoBar').classList.remove('show');
