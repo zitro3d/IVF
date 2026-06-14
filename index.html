@@ -150,6 +150,27 @@ html,body{
   opacity:0;transition:opacity 0.4s;
 }
 #cellStrip.show{opacity:1;}
+
+/* ── BRIDGE TENSION METER (Expert) ── */
+#tensionMeter{
+  position:fixed;
+  bottom:calc(196px + env(safe-area-inset-bottom,0px));
+  left:50%;transform:translateX(-50%);
+  z-index:8;pointer-events:none;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  opacity:0;transition:opacity .35s var(--ease);width:200px;
+}
+#tensionMeter.show{opacity:1;}
+.tm-l{font-size:8px;letter-spacing:2px;color:var(--o-dim);text-align:center;}
+.tm-track{position:relative;width:100%;height:9px;background:rgba(255,255,255,0.07);border-radius:5px;overflow:hidden;}
+/* target band spans 50%–82% of the track */
+.tm-band{position:absolute;top:0;bottom:0;left:50%;width:32%;background:rgba(0,232,122,0.22);border-left:1px solid var(--g-dim);border-right:1px solid var(--g-dim);}
+.tm-fill{position:absolute;top:0;bottom:0;left:0;width:0;background:var(--r);border-radius:5px;transition:width .08s linear,background .2s;}
+/* charge overlay — brightens as the auto-cut charges */
+.tm-charge{position:absolute;top:0;bottom:0;left:0;width:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.5));mix-blend-mode:screen;}
+.tm-fill.good{background:var(--g);box-shadow:0 0 10px rgba(0,232,122,0.5);}
+.tm-fill.low{background:var(--o);}
+.tm-fill.high{background:var(--r);box-shadow:0 0 12px rgba(255,61,80,0.6);}
 .cdot{width:10px;height:10px;border-radius:50%;border:1.5px solid rgba(0,221,114,0.3);transition:all 0.2s;}
 .cdot.full{background:var(--g);border-color:var(--g);box-shadow:0 0 5px rgba(0,221,114,0.5);}
 .cdot.next{border-color:var(--o);animation:ndot 1s ease-in-out infinite;}
@@ -805,6 +826,16 @@ html,body{
 <!-- CELL COUNT -->
 <div id="cellStrip"></div>
 
+<!-- BRIDGE TENSION METER (Expert two-handed junction cut) -->
+<div id="tensionMeter" aria-hidden="true">
+  <div class="tm-l" id="tmLbl">BRIDGE TENSION · keep in band</div>
+  <div class="tm-track">
+    <div class="tm-band"></div>
+    <div class="tm-fill" id="tmFill"></div>
+    <div class="tm-charge" id="tmCharge"></div>
+  </div>
+</div>
+
 <!-- TEMP BADGE -->
 <div id="tempBadge">
   <div class="temp-v" id="tV" style="color:var(--r)">35.8°C</div>
@@ -1178,6 +1209,9 @@ function fresh(){
     witnessOk:true,       // did the trainee tube under the correct patient ID?
     contamination:1,      // 0 = clean specimen, 1 = raw/unwashed (set during tubing)
     washes:0,             // wash drops the specimen passed through
+    // Expert two-handed junction cut (tension band → auto laser)
+    cutCharge:0,          // builds while bridge tension is in band; delivers a pulse at 1
+    _overT:false,         // latch so over-tension lyses cells once per excursion
   };
 }
 let S=fresh();
@@ -1775,9 +1809,15 @@ function updatePhysics(){
   const dc=DC[diff];
   const pp=Math.max(0,S.biopsy/100-0.73)*3.8;
   S.zonaIndent+=(pp+S.bioSuc/100*0.48-S.zonaIndent)*0.09;
-  if(S.biopsy>=77&&S.zoneCut&&S.hernProg>0.5)
+  // On EXPERT, the bridge only takes tension when the holding pipette is
+  // engaged (counter-traction) — forcing genuine two-handed control. Other
+  // difficulties keep the original suction-only stretch.
+  const expertCut=(diff==='h'&&S.step===6);
+  const haveCounter=(!expertCut||S.holdSuc>30);
+  if(S.biopsy>=77&&S.zoneCut&&S.hernProg>0.5&&haveCounter)
     S.cellStretch+=(S.bioSuc/100*0.96-S.cellStretch)*0.052;
   else S.cellStretch+=(0-S.cellStretch)*0.09;
+  if(expertCut)autoJunctionCut();   // tension-band auto laser
 
   if(S.cellStretch>0.44&&S.cells>=4){S.bridgeFormed=true;S.bridgeLen=Math.min(1,(S.cellStretch-0.44)/0.44);}
   else S.bridgeLen=Math.max(0,S.bridgeLen-0.018);
@@ -1797,8 +1837,10 @@ function updatePhysics(){
     }
   }
 
-  // Auto-aspirate — cadence varies with the case's TE quality (S.aspInterval)
-  if(S.biopsy>=82&&S.bioSuc>36&&S.cells<8&&S.zoneCut&&S.hernProg>0.56){
+  // Auto-aspirate — cadence varies with the case's TE quality (S.aspInterval).
+  // On Expert, aspiration stops once the two-handed cut begins (step 6) so
+  // suction there is purely for bridge tension, not collecting more cells.
+  if(S.biopsy>=82&&S.bioSuc>36&&S.cells<8&&S.zoneCut&&S.hernProg>0.56&&!(diff==='h'&&S.step===6)){
     if(S.t%(S.aspInterval||1.5)<0.02&&S.bioSuc>46){
       S.cells=Math.min(8,S.cells+1);
       updateCellDots();
@@ -1817,6 +1859,12 @@ function updatePhysics(){
         positionLTAtBridge();
         addScore(150);
         toast('◎','5 CELLS ASPIRATED','Now laser-cut junctions');
+        // EXPERT: engage the two-handed tension-band cut
+        if(diff==='h'){
+          showTensionMeter();
+          $('lSub').textContent='AUTO';$('lInfo').textContent='hold tension';
+          notify('EXPERT CUT — hold GRIP for counter-traction + modulate SUCTION to keep TENSION in the green band','ln');
+        }
       }
       if(S.cells===8)notify('8 CELLS — maximum. Now laser-cut cell junctions.','warn');
     }
@@ -1835,6 +1883,63 @@ function updatePhysics(){
   $('bF').style.background=S.blastoC>0.65?'var(--r)':S.blastoC>0.28?'var(--o)':'var(--g)';
   $('bS').style.color=S.blastoC>0.65?'rgba(255,61,80,0.7)':S.blastoC>0.28?'rgba(255,170,0,0.7)':'rgba(0,221,114,0.6)';
 }
+
+// ═══════════════════════════════════════
+// EXPERT TWO-HANDED JUNCTION CUT
+// Tension = cellStretch. The trainee holds GRIP (left) for counter-
+// traction and modulates SUCTION (right) to keep tension in the band
+// [TBAND_LO, TBAND_HI]. While in band a cut charges and auto-fires a
+// pulse; over-tension lyses cells. Runs only on Expert at step 6.
+// ═══════════════════════════════════════
+const TBAND_LO=0.50, TBAND_HI=0.82;     // mirrors the .tm-band CSS (50%–82%)
+function autoJunctionCut(){
+  if(S.cells<5||S.juncCut){updateTensionMeter();return;}
+  const dc=DC[diff], t=S.cellStretch;
+  if(t>TBAND_HI){
+    // Over-tensioned — tear once per excursion (latched by _overT)
+    if(!S._overT){
+      S._overT=true;
+      addErr('Bridge over-tensioned — cells lysed',18);
+      S.cells=Math.max(0,S.cells-1);updateCellDots();
+      notify('✗ OVER-TENSION — cells lysed. Ease the SUCTION','alert');
+    }
+    S.cutCharge=Math.max(0,S.cutCharge-0.05);
+  } else {
+    if(t<TBAND_HI-0.06)S._overT=false;   // reset latch once safely back down
+    if(t>=TBAND_LO){
+      S.cutCharge+=0.013;                // ~1.2s of steady tension per pulse
+      if(S.cutCharge>=1){
+        S.cutCharge=0;
+        S.juncPulses++;S.laserFlash=0.85;flash('white');addScore(70);
+        haptic(35);
+        const ep=EP();tapRing(ep.hernX,ep.hernY,'var(--l)');
+        $('lSub').textContent='CUT '+S.juncPulses+'/'+dc.jP;
+        if(S.juncPulses>=dc.jP){
+          S.juncCut=true;
+          $('lBtn').className='laser-btn done';$('lSub').textContent='DONE';
+          hideTensionMeter();
+          setTimeout(()=>{
+            nextStep();notify('✓ JUNCTIONS CUT — retract pipette ◀ to secure specimen','good');
+            addScore(260);toast('🧬','SPECIMEN EXCISED','Clean two-handed cut');
+          },380);
+        } else {
+          notify(`✦ JUNCTION PULSE ${S.juncPulses}/${dc.jP} — hold tension for the next`,'ln');
+        }
+      }
+    } else {
+      S.cutCharge=Math.max(0,S.cutCharge-0.02);  // too slack — charge bleeds
+    }
+  }
+  updateTensionMeter();
+}
+function updateTensionMeter(){
+  const fill=$('tmFill'), t=Math.min(1,S.cellStretch);
+  fill.style.width=(t*100)+'%';
+  fill.className='tm-fill'+(t>TBAND_HI?' high':t>=TBAND_LO?' good':' low');
+  $('tmCharge').style.width=(S.cutCharge*100)+'%';
+}
+function showTensionMeter(){$('tensionMeter').classList.add('show');}
+function hideTensionMeter(){$('tensionMeter').classList.remove('show');}
 
 // ═══════════════════════════════════════
 // LASER TARGET
@@ -1968,6 +2073,9 @@ function fireLaser(){
   // Step 6 — junction cutting (pulling method — fire at cell bridge near pipette tip)
   if(S.step===6){
     if(S.cells<5){notify('⚠ Aspirate at least 5 cells first','warn');return;}
+    // On EXPERT the cut is delivered automatically by holding tension in the
+    // band — manual fire just reminds the trainee of the two-handed task.
+    if(diff==='h'){notify('Hold GRIP + modulate SUCTION — the cut fires when tension is in the green band','ln');return;}
     if(!S.bridgeFormed){notify('⚠ Hold SUCTION longer to stretch cell bridge','warn');return;}
     if(S._laserArmed){return;}
     S._laserArmed=true;
@@ -2590,7 +2698,8 @@ function tubeLoad(){
 function computeOutcome(){
   const has=m=>S.errSet.has(m);
   const nearICM=has('Laser near ICM');
-  const torn=has('Cells pulled free without laser cut — specimen damaged');
+  const torn=has('Cells pulled free without laser cut — specimen damaged')
+           ||has('Bridge over-tensioned — cells lysed');
   const overSuc=has('Excessive suction pressure — risk of cell lysis');
   const cells=S.cells, complete=S.procedureDone, time=S.elapsed;
 
@@ -2758,6 +2867,7 @@ function startSim(){
   ltEl.style.display='none';ltEl.classList.remove('on','icm');
   $('cellStrip').classList.remove('show');
   $('cellStrip').innerHTML='';cellDots=[];
+  hideTensionMeter();
   $('toast').classList.remove('show');
   $('stepBox').textContent=PHASES[1];
   $('stepBox').className='warn';
@@ -2793,6 +2903,7 @@ function toMenu(){
   $('tempBadge').classList.remove('show');
   $('stepTrack').classList.remove('show');
   $('refBtn').style.display='none';
+  hideTensionMeter();
   closeRef();
   $('mOv').style.display='flex';
 }
