@@ -450,6 +450,32 @@ html,body{
 .mr-fill{height:100%;width:0;border-radius:3px;background:linear-gradient(90deg,var(--g),#9effc9);box-shadow:0 0 8px rgba(0,232,122,0.5);transition:width .6s var(--ease);}
 .mr-next{font-size:9px;letter-spacing:.5px;color:var(--g-dim);text-align:center;}
 
+/* CASE CAMPAIGN SELECTOR (menu) */
+.m-case{
+  width:100%;max-width:320px;
+  background:rgba(0,232,122,0.04);border:1px solid var(--g-faint);
+  border-radius:4px;padding:9px 13px;display:flex;flex-direction:column;gap:7px;
+}
+.mc-top{display:flex;justify-content:space-between;align-items:center;}
+.mc-label{font-size:8px;letter-spacing:3px;color:var(--g-faint);}
+.mc-count{font-size:9px;letter-spacing:1px;color:var(--g-dim);}
+.mc-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.mc-arrow{
+  width:30px;height:30px;flex-shrink:0;border-radius:50%;
+  background:transparent;border:1px solid var(--g-faint);color:var(--g-dim);
+  font-family:var(--mono);font-size:12px;cursor:pointer;touch-action:manipulation;transition:all .15s var(--ease);
+}
+.mc-arrow:hover:not(:disabled),.mc-arrow:focus-visible{color:var(--g);border-color:var(--g);outline:none;}
+.mc-arrow:disabled{opacity:0.25;cursor:default;}
+.mc-mid{flex:1;text-align:center;display:flex;flex-direction:column;gap:2px;}
+.mc-name{font-size:12px;letter-spacing:1px;color:var(--g);}
+.mc-grade{font-size:9px;letter-spacing:2px;color:var(--o);}
+.mc-brief{font-size:9.5px;letter-spacing:.3px;line-height:1.55;color:rgba(0,232,122,0.66);text-align:center;}
+.mc-status{font-size:8.5px;letter-spacing:1px;text-align:center;color:var(--g-faint);}
+.mc-status.locked{color:var(--o);}
+.mc-status.cleared{color:var(--g);}
+.m-case.locked{border-color:var(--o-dim);background:rgba(255,176,32,0.04);}
+
 /* CONTROLS HINT overlay (first session) */
 #controlHint{
   position:fixed;inset:0;z-index:11;background:rgba(0,0,0,0.88);
@@ -924,6 +950,24 @@ html,body{
     <div class="mr-next" id="mrNext">Complete sessions to advance</div>
   </div>
 
+  <!-- CASE CAMPAIGN — pick the embryo to work -->
+  <div class="m-case" id="mCase">
+    <div class="mc-top">
+      <span class="mc-label">CASE</span>
+      <span class="mc-count" id="mcCount">1 / 6</span>
+    </div>
+    <div class="mc-nav">
+      <button class="mc-arrow" id="mcPrev" onclick="caseNav(-1)" aria-label="Previous case">◀</button>
+      <div class="mc-mid">
+        <div class="mc-name" id="mcName">—</div>
+        <div class="mc-grade" id="mcGrade">—</div>
+      </div>
+      <button class="mc-arrow" id="mcNext" onclick="caseNav(1)" aria-label="Next case">▶</button>
+    </div>
+    <div class="mc-brief" id="mcBrief">—</div>
+    <div class="mc-status" id="mcStatus">—</div>
+  </div>
+
   <div class="diff-row">
     <div class="db" id="dE" onclick="setDiff('e')">GUIDED</div>
     <div class="db sel" id="dM" onclick="setDiff('m')">STANDARD</div>
@@ -1157,7 +1201,7 @@ function EP(){
   const ox=S.stX*1.02+S.dX*0.16, oy=S.stY*1.02+S.dY*0.16;
   const embX=W/2-48*sc+ox, embY=H/2+oy;
   const bb=Math.sin(S.t*0.05*Math.PI*2)*0.011*(1-S.blastoC);
-  const embR=(80+bb*80)*sc;
+  const embR=(80+bb*80)*sc*(S.caseR||1);   // case morphology scales embryo size
   const icmX=embX+Math.cos(S.icmAngle)*embR*0.44;
   const icmY=embY+Math.sin(S.icmAngle)*embR*0.36;
   const icmR=embR*0.34;
@@ -1597,7 +1641,8 @@ function loop(){
     }
 
     // Stage drift
-    S.dX+=S.dVX*dc.dM*obj.drift;S.dY+=S.dVY*dc.dM*obj.drift;
+    const dm=S.driftMod||1;   // per-case stage handling difficulty
+    S.dX+=S.dVX*dc.dM*obj.drift*dm;S.dY+=S.dVY*dc.dM*obj.drift*dm;
     if(Math.abs(S.dX)>8)S.dVX*=-1;if(Math.abs(S.dY)>5.5)S.dVY*=-1;
 
     // Temperature warmup
@@ -1752,9 +1797,9 @@ function updatePhysics(){
     }
   }
 
-  // Auto-aspirate
+  // Auto-aspirate — cadence varies with the case's TE quality (S.aspInterval)
   if(S.biopsy>=82&&S.bioSuc>36&&S.cells<8&&S.zoneCut&&S.hernProg>0.56){
-    if(S.t%1.5<0.02&&S.bioSuc>46){
+    if(S.t%(S.aspInterval||1.5)<0.02&&S.bioSuc>46){
       S.cells=Math.min(8,S.cells+1);
       updateCellDots();
       addScore(35);
@@ -2199,6 +2244,35 @@ function updateErrHUD(){
 }
 
 // ═══════════════════════════════════════
+// CASE CAMPAIGN — a roster of distinct embryos
+// Each case tunes the EXISTING systems (ICM start angle, TE
+// aspiration rate, stage drift, embryo size) and carries its own
+// clinical framing + ploidy odds, so every run feels different and
+// feeds the Day-8 epilogue. Cases unlock as the prior one is cleared.
+//   icmStart : starting ICM angle (radians) — varies rotation needed
+//   teQ      : trophectoderm quality 0.5–1 (lower = cells aspirate slower)
+//   drift    : stage-drift multiplier (handling difficulty)
+//   r        : embryo-size multiplier (morphology)
+//   euo      : probability this case is truly euploid
+// ═══════════════════════════════════════
+const CASES=[
+  {id:'c1',name:'Textbook blastocyst',grade:'4AA',euo:0.70,icmStart:1.0,teQ:1.0,drift:1.0,r:1.0,
+   brief:'34 y/o · fully expanded, prominent ICM, cohesive TE. The clean reference case.'},
+  {id:'c2',name:'Eccentric ICM',grade:'4AB',euo:0.62,icmStart:0.5,teQ:0.92,drift:1.05,r:1.0,
+   brief:'37 y/o · ICM sitting awkwardly — rotate further to clear the biopsy site.'},
+  {id:'c3',name:'Contracted blastocyst',grade:'3BB',euo:0.55,icmStart:2.4,teQ:0.85,drift:1.1,r:0.92,
+   brief:'39 y/o · partially collapsed, smaller cavity. Less room, slower herniation.'},
+  {id:'c4',name:'Sparse trophectoderm',grade:'4BC',euo:0.48,icmStart:0.3,teQ:0.72,drift:1.1,r:1.0,
+   brief:'41 y/o · few, loose TE cells — work patiently to reach 5 without over-suction.'},
+  {id:'c5',name:'Hatching, drifting stage',grade:'5AB',euo:0.5,icmStart:1.6,teQ:0.9,drift:1.35,r:1.05,
+   brief:'38 y/o · large hatching blastocyst on an unstable stage. Demanding handling.'},
+  {id:'c6',name:'Poor-prognosis case',grade:'3BC',euo:0.35,icmStart:0.15,teQ:0.68,drift:1.25,r:0.9,
+   brief:'43 y/o · contracted, sparse TE, low euploid odds. The full exam.'},
+];
+let caseIdx=0;                         // currently selected case
+function caseUnlocked(i){return i===0 || !!PROG.cleared[CASES[i-1].id];}
+
+// ═══════════════════════════════════════
 // PROGRESSION — persistent skill ranks
 // XP accrues from each session's final score (0–100). Crossing a
 // threshold promotes the trainee through four competency tiers,
@@ -2212,8 +2286,14 @@ const RANKS=[
 ];
 const STORE_KEY='ivf_progress_v1';
 function loadProg(){
-  try{const p=JSON.parse(localStorage.getItem(STORE_KEY));if(p&&typeof p==='object')return p;}catch(e){}
-  return{xp:0,sessions:0,best:{e:0,m:0,h:0}};
+  let p={};
+  try{const j=JSON.parse(localStorage.getItem(STORE_KEY));if(j&&typeof j==='object')p=j;}catch(e){}
+  // Normalise so older saves (without case data) stay valid.
+  return{
+    xp:p.xp||0, sessions:p.sessions||0,
+    best:p.best||{e:0,m:0,h:0},
+    cleared:p.cleared||{},           // caseId -> best grand score on that case
+  };
 }
 function saveProg(p){try{localStorage.setItem(STORE_KEY,JSON.stringify(p));}catch(e){}}
 let PROG=loadProg();
@@ -2234,6 +2314,39 @@ function renderMenuRank(){
   $('mrNext').textContent=r.next
     ? `${r.next.xp-PROG.xp} XP to ${r.next.n}`
     : 'Top rank reached — ' + r.cur.note;
+}
+
+// Paint the case-selector card and reflect lock / cleared state.
+function renderCase(){
+  const c=CASES[caseIdx], unlocked=caseUnlocked(caseIdx);
+  $('mcCount').textContent=`${caseIdx+1} / ${CASES.length}`;
+  $('mcName').textContent=c.name;
+  $('mcGrade').textContent='GARDNER '+c.grade;
+  $('mcBrief').textContent=c.brief;
+  $('mcPrev').disabled=caseIdx===0;
+  $('mcNext').disabled=caseIdx===CASES.length-1;
+
+  const st=$('mcStatus'), best=PROG.cleared[c.id];
+  if(!unlocked){
+    st.className='mc-status locked';
+    st.textContent='🔒 LOCKED · clear "'+CASES[caseIdx-1].name+'" to unlock';
+    $('mCase').classList.add('locked');
+  } else {
+    $('mCase').classList.remove('locked');
+    if(best!=null){st.className='mc-status cleared';st.textContent='✓ CLEARED · best '+best;}
+    else{st.className='mc-status';st.textContent='Not yet attempted';}
+  }
+  // The START button is shared; gate it on the selected case being unlocked.
+  const go=document.querySelector('#mOv .go');
+  if(go){
+    go.style.opacity=unlocked?'1':'0.4';
+    go.textContent=unlocked?'START SESSION':'CASE LOCKED';
+  }
+}
+function caseNav(d){
+  caseIdx=Math.max(0,Math.min(CASES.length-1,caseIdx+d));
+  haptic(8);
+  renderCase();
 }
 
 // ═══════════════════════════════════════
@@ -2332,6 +2445,10 @@ function showDebrief(){
   const prevBest=PROG.best[diff]||0;
   const newBest=grand>prevBest;
   if(newBest)PROG.best[diff]=grand;
+  // Clear the case (and unlock the next) only on a completed procedure.
+  if(S.procedureDone&&S.caseId){
+    PROG.cleared[S.caseId]=Math.max(PROG.cleared[S.caseId]||0,grand);
+  }
   PROG.xp+=grand;
   PROG.sessions+=1;
   saveProg(PROG);
@@ -2350,7 +2467,7 @@ function showDebrief(){
     ? `+${grand} XP  ·  ${rankAfter.next.xp-PROG.xp} XP to ${rankAfter.next.n}`
     : `+${grand} XP  ·  Top rank — ${rankAfter.cur.n}`;
 
-  renderMenuRank();  // keep the menu panel in sync for when they return
+  renderMenuRank();renderCase();  // keep the menu panels in sync for when they return
   if(rankedUp){
     setTimeout(()=>toast('🎖️','RANK UP',`Promoted to ${rankAfter.cur.n}`),700);
     haptic([0,30,40,30,40,60]);
@@ -2587,6 +2704,9 @@ function setDiff(d){
 
 let firstSession=true;
 function beginSession(){
+  if(!caseUnlocked(caseIdx)){            // selected a locked case — refuse
+    notify('🔒 Clear the previous case to unlock this one','warn');haptic([0,40,30,40]);return;
+  }
   $('mOv').style.display='none';
   if(firstSession){firstSession=false;$('controlHint').style.display='flex';}
   else startSim();
@@ -2601,9 +2721,17 @@ function startSim(){
   $('controlHint').style.display='none';
 
   S=fresh();S.live=true;S.startT=Date.now();S.step=1;
-  // Predetermine this case's TRUE ploidy (biology, not skill). Whether the
-  // trainee actually obtains a usable result depends on their technique.
-  S.trueEuploid=Math.random()>0.42;
+  // ── Apply the selected CASE — tunes existing systems so each
+  //    embryo plays and resolves differently. ──
+  const C=CASES[caseIdx];
+  S.caseId=C.id;
+  S.icmAngle=((C.icmStart%(Math.PI*2))+Math.PI*2)%(Math.PI*2); // starting ICM position
+  S.aspInterval=1.5/C.teQ;     // poorer TE → cells aspirate more slowly
+  S.driftMod=C.drift;          // stage handling difficulty
+  S.caseR=C.r;                 // embryo size / morphology
+  // Predetermine this case's TRUE ploidy from its clinical odds (biology,
+  // not skill). Whether the trainee obtains a usable result is up to them.
+  S.trueEuploid=Math.random()<C.euo;
   S.focus=38; // start slightly out of focus — embryo visible but needs fine adjustment
   // Restore joystick refs
   S.joyActive=false;S.joyX=0;S.joyY=0;
@@ -2649,6 +2777,7 @@ function startSim(){
   $('oDisp').textContent=obj.m+'×';
   const od3=$('oDispFocus');if(od3)od3.textContent=obj.n+' · '+obj.m+'×';
 
+  toast('🧫','CASE: '+CASES[caseIdx].name,'Gardner '+CASES[caseIdx].grade);
   notify('STEP 1 — Wait for 37°C · Fine-tune FOCUS until zona is sharp','warn');
   onFocus(38);
 }
@@ -2777,6 +2906,7 @@ function initA11y(){
 // ═══════════════════════════════════════
 initA11y();        // label controls + wire keyboard for assistive tech
 renderMenuRank();  // reflect any stored progress on first paint
+renderCase();      // paint the case selector
 loop();
 </script>
 </body>
