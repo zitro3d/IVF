@@ -586,6 +586,32 @@ html,body{
   border-left:2px solid var(--g-faint);padding:4px 0 4px 11px;
 }
 
+/* ── INSTRUCTOR ASSESSMENT ── */
+#aOv{background:radial-gradient(ellipse 80% 60% at 50% 35%,rgba(0,26,18,0.6),rgba(0,4,3,0.98) 78%);display:none;}
+.a-head{font-size:11px;letter-spacing:3px;color:var(--g);text-align:center;}
+.a-input{
+  width:100%;max-width:330px;background:rgba(0,232,122,0.05);
+  border:1px solid var(--g-faint);border-radius:4px;color:var(--g);
+  font-family:var(--mono);font-size:11px;letter-spacing:1px;padding:9px 12px;text-align:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.a-input::placeholder{color:var(--g-faint);}
+.a-input:focus{outline:none;border-color:var(--g-dim);background:rgba(0,232,122,0.09);}
+.a-meta{font-size:8.5px;letter-spacing:1px;line-height:1.6;color:var(--g-dim);text-align:center;}
+.a-list{width:100%;max-width:330px;display:flex;flex-direction:column;gap:5px;max-height:42vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.a-item{display:flex;gap:8px;align-items:flex-start;font-size:9px;line-height:1.45;letter-spacing:.3px;}
+.a-tag{flex-shrink:0;width:54px;text-align:center;border-radius:3px;padding:2px 0;font-size:7.5px;letter-spacing:1px;border:1px solid;}
+.a-tag.pass{color:var(--g);border-color:var(--g-dim);background:rgba(0,232,122,0.08);}
+.a-tag.part{color:var(--o);border-color:var(--o-dim);background:rgba(255,176,32,0.08);}
+.a-tag.fail{color:var(--r);border-color:var(--r-dim);background:rgba(255,61,80,0.1);}
+.a-item-b{display:flex;flex-direction:column;gap:1px;}
+.a-item-t{color:rgba(0,232,122,0.85);}
+.a-item-n{color:var(--g-faint);font-size:8px;}
+.a-verdict{width:100%;max-width:330px;text-align:center;font-size:11px;letter-spacing:2px;padding:9px;border-radius:4px;border:1px solid var(--g-faint);}
+.a-verdict.pass{color:var(--g);border-color:var(--g-dim);background:rgba(0,232,122,0.06);}
+.a-verdict.part{color:var(--o);border-color:var(--o-dim);background:rgba(255,176,32,0.06);}
+.a-verdict.fail{color:var(--r);border-color:var(--r-dim);background:rgba(255,61,80,0.07);}
+
 /* ── TUBING & WITNESSING ── */
 #tOv{background:radial-gradient(ellipse 80% 60% at 50% 35%,rgba(0,30,20,0.6),rgba(0,4,3,0.98) 78%);display:none;}
 .tb-title{font-size:14px;letter-spacing:3px;color:var(--g);text-shadow:0 0 18px rgba(0,232,122,0.3);}
@@ -1087,9 +1113,31 @@ html,body{
 
   <div class="o-note" id="oNote">—</div>
 
+  <button class="d-outcome" onclick="showAssess()" style="border-color:var(--g-faint);color:var(--g);background:rgba(0,232,122,0.05);box-shadow:none;animation:none;">📋 INSTRUCTOR ASSESSMENT →</button>
   <div class="d-btns">
     <button class="d-menu" onclick="backToDebrief()">← SCORECARD</button>
     <button class="d-again" onclick="startSim()">NEW CASE</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     INSTRUCTOR ASSESSMENT (additive)
+     OSAT-style competency checklist + exportable report for
+     training programs. Built from the same run data; changes nothing.
+════════════════════════════════ -->
+<div class="ov" id="aOv">
+  <div class="a-head">COMPETENCY ASSESSMENT · OSAT</div>
+  <input id="aTrainee" class="a-input" type="text" placeholder="Trainee name / ID" aria-label="Trainee name or ID" oninput="saveTrainee()">
+  <div class="a-meta" id="aMeta">—</div>
+  <div class="a-list" id="aList"></div>
+  <div class="a-verdict" id="aVerdict">—</div>
+  <div class="d-btns">
+    <button class="d-again" id="aCopy" onclick="copyReport()">COPY REPORT</button>
+    <button class="d-again" onclick="downloadReport()">DOWNLOAD</button>
+  </div>
+  <div class="d-btns">
+    <button class="d-menu" onclick="closeAssess()">← OUTCOME</button>
+    <button class="d-menu" onclick="toMenu()">MENU</button>
   </div>
 </div>
 
@@ -2405,6 +2453,7 @@ function loadProg(){
 }
 function saveProg(p){try{localStorage.setItem(STORE_KEY,JSON.stringify(p));}catch(e){}}
 let PROG=loadProg();
+let lastResult=null;   // snapshot of the most recent debrief, for the assessment export
 // Resolve an XP total to its current rank and progress toward the next.
 function rankFor(xp){
   let idx=0;
@@ -2522,6 +2571,9 @@ function showDebrief(){
   const grand=Math.min(100,total+Math.round(S.score/40));
   const stars=grand>=90?5:grand>=78?4:grand>=65?3:grand>=50?2:1;
   const grade=grand>=90?'A+':grand>=80?'A':grand>=70?'B':grand>=60?'C':'D';
+  // Capture the result so the instructor assessment can reuse the same numbers.
+  lastResult={grand,grade,stars,focSc,icmSc,lasSc,celSc,blaSc,penalties:S.penalties,
+              diff,caseId:S.caseId,elapsed:S.elapsed,score:S.score,errors:S.errors.slice()};
   const gradeCol=grand>=80?'var(--g)':grand>=65?'var(--o)':'var(--r)';
   const subs={'A+':'Outstanding. Embryo intact. Specimen ready for PGT.','A':'Excellent. Minor deviations. Viable result.','B':'Good. Review ICM positioning and suction timing.','C':'Acceptable. Practice laser accuracy.','D':'Significant errors. Repeat before clinical work.'};
 
@@ -2804,6 +2856,154 @@ function backToDebrief(){
 }
 
 // ═══════════════════════════════════════
+// INSTRUCTOR ASSESSMENT — OSAT checklist + export
+// Maps a completed run to discrete competencies (PASS/PART/FAIL) and
+// produces a portable text report (copy or download) for training records.
+// Built from the same run data; the simulation itself is unchanged.
+// ═══════════════════════════════════════
+const DIFF_LABEL={e:'GUIDED',m:'STANDARD',h:'EXPERT'};
+let lastAssess=null;
+function buildAssessment(o,r){
+  const I=[];                          // competency items
+  const add=(label,status,note)=>I.push({label,status,note});
+
+  // 1 · Patient identity (witnessing)
+  o.mixup ? add('Patient identity verification','fail','Specimen tubed under the wrong patient ID')
+          : add('Patient identity verification','pass','ID matched before tubing');
+  // 2 · Thermal & optical setup
+  if(S.focusLocked&&S.tempOk)      add('Thermal & optical setup','pass','Sharp focus at 37°C');
+  else if(S.focusLocked)           add('Thermal & optical setup','part','Focused before stage reached 37°C');
+  else                             add('Thermal & optical setup','fail','Zona not brought to sharp focus');
+  // 3 · ICM orientation & protection
+  if(o.nearICM)                    add('ICM orientation & protection','fail','Laser pulse near the inner cell mass');
+  else if(S.icmOk)                 add('ICM orientation & protection','pass','ICM positioned clear of biopsy site');
+  else                             add('ICM orientation & protection','part','ICM not optimally oriented');
+  // 4 · Zona breach technique
+  if(S.zoneCut&&!o.nearICM)        add('Zona breach technique','pass','Clean breach opposite the ICM');
+  else if(S.zoneCut)               add('Zona breach technique','part','Breach made but close to ICM');
+  else                             add('Zona breach technique','fail','Zona not breached');
+  // 5 · TE retrieval adequacy
+  if(o.cells>=5&&o.cells<=7)       add('Trophectoderm retrieval','pass',o.cells+' cells — within target (5–8)');
+  else if(o.cells===8)             add('Trophectoderm retrieval','part','Over-biopsy — 8 cells removed');
+  else if(o.cells>=3)             add('Trophectoderm retrieval','part',o.cells+' cells — marginal yield');
+  else                             add('Trophectoderm retrieval','fail',o.cells+' cells — insufficient');
+  // 6 · Atraumatic technique
+  if(o.torn)                       add('Atraumatic technique','fail','Specimen torn / cells lysed');
+  else if(o.trauma<0.25)           add('Atraumatic technique','pass','Minimal embryo stress');
+  else if(o.trauma<0.5)            add('Atraumatic technique','part','Moderate embryo stress');
+  else                             add('Atraumatic technique','fail','Excess thermal / mechanical trauma');
+  // 7 · Specimen processing (washing)
+  if(S.contamination<0.25)         add('Specimen processing','pass','Washed before loading the tube');
+  else if(S.contamination<0.55)    add('Specimen processing','part','Incomplete washing — some carryover');
+  else                             add('Specimen processing','fail','Loaded with heavy contaminant carryover');
+  // 8 · Procedural efficiency
+  if(o.time<=150)                  add('Procedural efficiency','pass',fmtTime(o.time)+' bench time');
+  else if(o.time<=240)             add('Procedural efficiency','part',fmtTime(o.time)+' — somewhat slow');
+  else                             add('Procedural efficiency','fail',fmtTime(o.time)+' — prolonged exposure');
+  // 9 · Diagnostic result obtained
+  if(o.pgt==='EUPLOID'||o.pgt==='ANEUPLOID') add('Diagnostic result obtained','pass','Confident '+o.pgt+' call');
+  else if(o.pgt==='NO CALL')       add('Diagnostic result obtained','part','Inconclusive — re-biopsy advised');
+  else                             add('Diagnostic result obtained','fail',o.pgt);
+
+  const fails=I.filter(i=>i.status==='fail').length;
+  const parts=I.filter(i=>i.status==='part').length;
+  let v;
+  if(fails>=2||o.mixup||o.pgt==='NO RESULT') v={cls:'fail',text:'NEEDS REMEDIATION'};
+  else if(fails===1||parts>=3)               v={cls:'part',text:'COMPETENT · WITH SUPERVISION'};
+  else                                       v={cls:'pass',text:'COMPETENT · INDEPENDENT'};
+  return{items:I,verdict:v,fails,parts};
+}
+function fmtTime(s){const m=Math.floor(s/60);return m+':'+(s%60<10?'0':'')+(s%60);}
+
+function showAssess(){
+  if(!lastResult)return;
+  const o=computeOutcome(), r=lastResult;
+  lastAssess=buildAssessment(o,r);
+  const C=CASES.find(c=>c.id===r.caseId)||{name:'—',grade:'—'};
+
+  $('aMeta').innerHTML=`${C.name} · Gardner ${C.grade} · ${DIFF_LABEL[r.diff]||r.diff}<br>`
+    +`Grade ${r.grade} · ${r.grand}/100 · ${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)} · ${fmtTime(r.elapsed)}`;
+
+  $('aList').innerHTML=lastAssess.items.map(it=>{
+    const tag=it.status==='pass'?'PASS':it.status==='part'?'PARTIAL':'FAIL';
+    return `<div class="a-item"><div class="a-tag ${it.status}">${tag}</div>`
+      +`<div class="a-item-b"><div class="a-item-t">${it.label}</div><div class="a-item-n">${it.note}</div></div></div>`;
+  }).join('');
+
+  const v=lastAssess.verdict;
+  $('aVerdict').className='a-verdict '+v.cls;
+  $('aVerdict').textContent=v.text;
+
+  // prefill trainee from last time
+  try{$('aTrainee').value=localStorage.getItem('ivf_trainee')||'';}catch(e){}
+
+  $('oOv').style.display='none';
+  $('aOv').style.display='flex';
+}
+function closeAssess(){$('aOv').style.display='none';$('oOv').style.display='flex';}
+function saveTrainee(){try{localStorage.setItem('ivf_trainee',$('aTrainee').value);}catch(e){}}
+
+// Assemble the portable plain-text report from the current assessment.
+function reportText(){
+  if(!lastAssess||!lastResult)return '';
+  const o=computeOutcome(), r=lastResult;
+  const C=CASES.find(c=>c.id===r.caseId)||{name:'—',grade:'—'};
+  const name=($('aTrainee').value||'').trim()||'(unspecified)';
+  const line='='.repeat(48);
+  const rows=lastAssess.items.map(it=>{
+    const t=it.status==='pass'?'PASS':it.status==='part'?'PART':'FAIL';
+    return `[${t}] ${it.label} — ${it.note}`;
+  }).join('\n');
+  const errs=r.errors.length?r.errors.map(e=>'  - '+e).join('\n'):'  None';
+  return [
+    'IVF TROPHECTODERM BIOPSY — COMPETENCY ASSESSMENT',line,
+    'Trainee : '+name,
+    'Date    : '+new Date().toLocaleString(),
+    'Case    : '+C.name+' (Gardner '+C.grade+')',
+    'Mode    : '+(DIFF_LABEL[r.diff]||r.diff),
+    '',
+    'Score   : '+r.grade+' · '+r.grand+'/100  ('+r.stars+'/5 stars)',
+    'Time    : '+fmtTime(r.elapsed)+'   Points: '+r.score,
+    '',
+    'COMPETENCIES','-'.repeat(12),rows,
+    '',
+    'CLINICAL OUTCOME (Day 8)','-'.repeat(24),
+    'Embryo : '+o.surv,
+    'PGT-A  : '+o.pgt,
+    '',
+    'ERRORS LOGGED','-'.repeat(13),errs,
+    '',
+    'OVERALL : '+lastAssess.verdict.text,line,
+  ].join('\n');
+}
+function copyReport(){
+  const txt=reportText();
+  const done=()=>{$('aCopy').textContent='✓ COPIED';setTimeout(()=>$('aCopy').textContent='COPY REPORT',1600);haptic(20);};
+  try{
+    navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopy(txt,done));
+  }catch(e){fallbackCopy(txt,done);}
+}
+function fallbackCopy(txt,done){
+  try{
+    const ta=document.createElement('textarea');ta.value=txt;
+    ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);
+    ta.select();document.execCommand('copy');ta.remove();done();
+  }catch(e){notify('Copy unavailable — use Download','warn');}
+}
+function downloadReport(){
+  try{
+    const name=($('aTrainee').value||'trainee').trim().replace(/[^a-z0-9]+/gi,'_')||'trainee';
+    const blob=new Blob([reportText()],{type:'text/plain'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='biopsy-assessment-'+name+'.txt';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    haptic(20);
+  }catch(e){notify('Download unavailable in this browser','warn');}
+}
+
+// ═══════════════════════════════════════
 // START / MENU
 // ═══════════════════════════════════════
 function setDiff(d){
@@ -2827,6 +3027,7 @@ function startSim(){
   $('dOv').style.display='none';
   $('oOv').style.display='none';
   $('tOv').style.display='none';
+  $('aOv').style.display='none';
   $('controlHint').style.display='none';
 
   S=fresh();S.live=true;S.startT=Date.now();S.step=1;
@@ -2897,6 +3098,7 @@ function toMenu(){
   $('dOv').style.display='none';
   $('oOv').style.display='none';
   $('tOv').style.display='none';
+  $('aOv').style.display='none';
   $('cp').style.display='none';
   $('focBar').classList.remove('show');
   $('blastoBar').classList.remove('show');
@@ -2942,6 +3144,9 @@ function nudgeFocus(d){
   fk.value=v;onFocus(v);
 }
 window.addEventListener('keydown',e=>{
+  // Never hijack typing in a text field (e.g. the trainee-name input)
+  const ae=document.activeElement;
+  if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA')&&ae.type!=='range')return;
   const k=e.key.toLowerCase();
   // Panel toggles work regardless of session state
   if(k==='escape'){closeRef();return;}
