@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+<meta name="theme-color" content="#0a0d14">
+<meta name="apple-mobile-web-app-title" content="IVF Biopsy Sim">
 <title>IVF Biopsy Sim</title>
 <style>
 
@@ -2669,10 +2672,21 @@ function setDiff(d){
 }
 
 let firstSession=true;
+// Request fullscreen — must be triggered by a user gesture (the START tap).
+// Works on Android Chrome & desktop; iOS Safari ignores it in-browser (there,
+// "Add to Home Screen" gives the chrome-less experience via the PWA meta tags).
+function goFullscreen(){
+  try{
+    const el=document.documentElement;
+    const fn=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
+    if(fn&&!document.fullscreenElement&&!document.webkitFullscreenElement)fn.call(el);
+  }catch(e){}
+}
 function beginSession(){
   if(!caseUnlocked(caseIdx)){            // selected a locked case — refuse
     notify('🔒 Clear the previous case to unlock this one','warn');haptic([0,40,30,40]);return;
   }
+  goFullscreen();                        // hide browser chrome where supported
   $('mOv').style.display='none';
   firstSession=false;startSim();
 }
