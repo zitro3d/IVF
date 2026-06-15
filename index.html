@@ -73,7 +73,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 @keyframes ringPing{0%{transform:translate(-50%,-50%) scale(0.6);opacity:0.7;}100%{transform:translate(-50%,-50%) scale(2.4);opacity:0;}}
 .tap-ring{position:fixed;width:46px;height:46px;border-radius:50%;border:2px solid currentColor;pointer-events:none;z-index:9;animation:ringPing 0.5s var(--ease) forwards;}
 
-#focRing{position:fixed;border-radius:50%;transform:translate(-50%,-50%);z-index:4;pointer-events:none;transition:border-color 0.3s,width 0.15s,height 0.15s;border:1.5px solid rgba(47,191,110,0.0);}
+#focRing{display:none;}
 
 /* ── CELL COUNT ── */
 #cellStrip{position:fixed;bottom:calc(var(--panelH) + 12px);left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;display:flex;gap:6px;align-items:center;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:20px;padding:7px 12px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
@@ -1359,16 +1359,7 @@ function loop(){
   }
 }
 
-function updateFocusRing(fS){
-  const{embX,embY,embR}=EP();
-  const fr=$('focRing');
-  const sz=embR*2.1;
-  fr.style.left=embX+'px';fr.style.top=embY+'px';
-  fr.style.width=sz+'px';fr.style.height=sz+'px';
-  if(fS>0.82){fr.style.borderColor='rgba(47,191,110,0.35)';}
-  else if(fS>0.45){fr.style.borderColor='rgba(245,165,36,0.25)';}
-  else{fr.style.borderColor='rgba(47,191,110,0.0)';}
-}
+function updateFocusRing(fS){ /* focus ring removed — focus feedback now lives on the dial */ }
 
 // ═══════════════════════════════════════
 // PHYSICS
