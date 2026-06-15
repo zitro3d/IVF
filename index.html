@@ -30,7 +30,7 @@
   --ease-snap:cubic-bezier(0.34,1.56,0.64,1);
 }
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--ui);color:var(--ink);touch-action:none;}
-#scope{position:fixed;inset:0;width:100%;height:100%;z-index:1;touch-action:none;}
+#scope{position:fixed;inset:0;width:100%;height:100%;z-index:1;touch-action:none;filter:contrast(1.05) saturate(1.06);}
 #off{display:none;}
 .vig{position:fixed;inset:0;z-index:2;pointer-events:none;background:radial-gradient(ellipse 70% 72% at 50% 46%,transparent 40%,rgba(6,9,14,0.4) 62%,rgba(6,9,14,0.9) 82%,#070b12 100%);}
 .scan{position:fixed;inset:0;z-index:3;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.025) 3px,rgba(0,0,0,0.025) 4px);opacity:0.5;}
@@ -965,15 +965,15 @@ function applyBlur(ba){
     ctx.drawImage(off,Math.cos(a)*r,Math.sin(a)*r);
     ctx.drawImage(off,Math.cos(a)*r*0.38,Math.sin(a)*r*0.38);
   }
-  if(ba>6){ctx.globalAlpha=Math.min(0.28,(ba-6)*0.04);ctx.fillStyle='#8aa070';ctx.fillRect(0,0,scope.width,scope.height);}
+  if(ba>6){ctx.globalAlpha=Math.min(0.28,(ba-6)*0.04);ctx.fillStyle='#7c869a';ctx.fillRect(0,0,scope.width,scope.height);}
   ctx.globalAlpha=1;
 }
 
 // ═══════════════════════════════════════
-// DRAW SCENE — Hoffman Modulation Contrast style
-// Reference: real IVF microscopy photos
-// Colors: grey-purple BG, yellow-green/purple-blue chroma fringing,
-//         transparent glass pipette, clean zona breach (no burn residue)
+// DRAW SCENE — DIC / Nomarski style
+// Reference: differential-interference-contrast microscopy
+// Colors: cool blue-grey field, gold (lit) / steel-blue (shadow) shear that
+//         sculpts every cell into a bead, warm/cool zona fringe, rim vignette
 // ═══════════════════════════════════════
 function drawScene(){
   const {W,H,sc,embX,embY,embR,bb,icmX,icmY,icmR,hernX,hernY}=EP();
@@ -982,21 +982,21 @@ function drawScene(){
   const fS=getFSharp();
 
   // ── BACKGROUND — cool silver-grey like real dish ──
-  bc.fillStyle='#8892a0';
+  bc.fillStyle='#6f7889';
   bc.fillRect(0,0,W,H);
 
   // Hoffman illumination — uneven, slightly brighter upper-center
   const illum=bc.createRadialGradient(W*0.5,H*0.38,0,W*0.5,H*0.5,Math.max(W,H)*0.7);
-  illum.addColorStop(0,'rgba(225,228,238,0.55)');
-  illum.addColorStop(0.3,'rgba(195,200,215,0.3)');
-  illum.addColorStop(0.7,'rgba(145,152,168,0.1)');
+  illum.addColorStop(0,'rgba(206,214,228,0.55)');
+  illum.addColorStop(0.3,'rgba(176,186,206,0.3)');
+  illum.addColorStop(0.7,'rgba(120,130,150,0.1)');
   illum.addColorStop(1,'rgba(80,88,105,0.0)');
   bc.fillStyle=illum;bc.fillRect(0,0,W,H);
 
   // Subtle purple-blue cast in lower half (Hoffman shadow side)
   const shadow=bc.createLinearGradient(0,H*0.4,0,H);
   shadow.addColorStop(0,'rgba(0,0,0,0)');
-  shadow.addColorStop(1,'rgba(90,80,120,0.18)');
+  shadow.addColorStop(1,'rgba(36,42,68,0.18)');
   bc.fillStyle=shadow;bc.fillRect(0,0,W,H);
 
   // Fine optical noise — media
@@ -1021,24 +1021,24 @@ function drawScene(){
     bc.globalAlpha=0.82;
     // Top edge — yellow-green (bright side)
     bc.beginPath();bc.moveTo(hX,hTipY-hW);bc.lineTo(-20,hTipY-hW);
-    bc.strokeStyle='rgba(195,210,80,0.85)';bc.lineWidth=2.2;bc.stroke();
+    bc.strokeStyle='rgba(224,206,132,0.85)';bc.lineWidth=2.2;bc.stroke();
     // Bottom edge — purple-blue (shadow side)
     bc.beginPath();bc.moveTo(hX,hTipY+hW);bc.lineTo(-20,hTipY+hW);
-    bc.strokeStyle='rgba(100,90,175,0.75)';bc.lineWidth=2.2;bc.stroke();
+    bc.strokeStyle='rgba(92,108,172,0.75)';bc.lineWidth=2.2;bc.stroke();
     // Glass body fill — very transparent
     bc.beginPath();
     bc.moveTo(hX,hTipY-hW);bc.lineTo(-20,hTipY-hW);
     bc.lineTo(-20,hTipY+hW);bc.lineTo(hX,hTipY+hW);bc.closePath();
     const gpg=bc.createLinearGradient(0,hTipY-hW,0,hTipY+hW);
-    gpg.addColorStop(0,'rgba(210,220,180,0.12)');
+    gpg.addColorStop(0,'rgba(200,208,220,0.12)');
     gpg.addColorStop(0.35,'rgba(235,240,225,0.22)');
-    gpg.addColorStop(0.65,'rgba(175,180,210,0.12)');
-    gpg.addColorStop(1,'rgba(120,110,175,0.08)');
+    gpg.addColorStop(0.65,'rgba(158,168,198,0.12)');
+    gpg.addColorStop(1,'rgba(104,116,176,0.08)');
     bc.fillStyle=gpg;bc.fill();
     // Lumen opening — dark circle
     bc.beginPath();bc.arc(hX,hTipY,6*sc,0,Math.PI*2);
     bc.fillStyle='rgba(20,18,30,0.7)';bc.fill();
-    bc.strokeStyle='rgba(195,210,80,0.5)';bc.lineWidth=0.8;bc.stroke();
+    bc.strokeStyle='rgba(224,206,132,0.5)';bc.lineWidth=0.8;bc.stroke();
     bc.restore();
   }
 
@@ -1060,9 +1060,9 @@ function drawScene(){
 
   // Interior fill — grey-purple like the real photos
   const intG=bc.createRadialGradient(embX-8*sc,embY-6*sc,2,embX,embY,embR);
-  intG.addColorStop(0,'rgba(195,200,215,0.28)');
+  intG.addColorStop(0,'rgba(176,186,206,0.28)');
   intG.addColorStop(0.4,'rgba(165,170,190,0.18)');
-  intG.addColorStop(1,'rgba(120,115,150,0.08)');
+  intG.addColorStop(1,'rgba(100,110,150,0.08)');
   bc.fillStyle=intG;bc.fill();
 
   // Zona wall — bright yellow-green top, purple shadow bottom (Hoffman)
@@ -1075,7 +1075,7 @@ function drawScene(){
     a===-Math.PI*0.7?bc.moveTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08)):
                      bc.lineTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08));
   }
-  bc.strokeStyle=`rgba(210,228,80,${0.82+bb*2})`; // yellow-green bright
+  bc.strokeStyle=`rgba(230,212,140,${0.82+bb*2})`; // yellow-green bright
   bc.lineWidth=(3.8-S.blastoC*1.2)*sc*Math.max(0.12,fS);bc.stroke();
 
   // Shadow side
@@ -1087,13 +1087,13 @@ function drawScene(){
     a===Math.PI*0.3?bc.moveTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08)):
                     bc.lineTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08));
   }
-  bc.strokeStyle=`rgba(95,85,165,${0.65+bb*1.5})`; // purple-blue shadow
+  bc.strokeStyle=`rgba(86,104,170,${0.65+bb*1.5})`; // purple-blue shadow
   bc.lineWidth=(2.5-S.blastoC*0.8)*sc*Math.max(0.1,fS);bc.stroke();
 
   // Outer chroma fringe — yellow above, purple below
   for(const[off,col,wid]of[
-    [-1.5,'rgba(200,220,55,0.22)',2],
-    [+1.5,'rgba(85,75,155,0.18)',2],
+    [-1.5,'rgba(226,204,120,0.22)',2],
+    [+1.5,'rgba(84,100,166,0.18)',2],
   ]){
     bc.beginPath();
     for(let a=0;a<Math.PI*2;a+=0.04){
@@ -1108,10 +1108,10 @@ function drawScene(){
   bc.save();
   // Base fill
   const icmG=bc.createRadialGradient(icmX-4*sc,icmY-4*sc,1,icmX,icmY,icmR);
-  icmG.addColorStop(0,'rgba(175,195,65,0.72)');
-  icmG.addColorStop(0.4,'rgba(145,165,45,0.58)');
-  icmG.addColorStop(0.8,'rgba(105,120,30,0.4)');
-  icmG.addColorStop(1,'rgba(75,85,20,0.2)');
+  icmG.addColorStop(0,'rgba(206,186,118,0.72)');
+  icmG.addColorStop(0.4,'rgba(132,141,160,0.58)');
+  icmG.addColorStop(0.8,'rgba(96,106,128,0.4)');
+  icmG.addColorStop(1,'rgba(70,78,104,0.2)');
   bc.beginPath();bc.ellipse(icmX,icmY,icmR,icmR*0.82,S.icmAngle*0.2,0,Math.PI*2);
   bc.fillStyle=icmG;bc.fill();
   // Texture — small cell-like blobs
@@ -1122,16 +1122,16 @@ function drawScene(){
     const cr=(3.5+Math.sin(i*1.8)*1.5)*sc;
     bc.beginPath();bc.arc(cx2,cy2,cr,0,Math.PI*2);
     const cg=bc.createRadialGradient(cx2-cr*0.3,cy2-cr*0.3,0,cx2,cy2,cr);
-    cg.addColorStop(0,'rgba(200,218,88,0.55)');cg.addColorStop(1,'rgba(95,108,28,0.2)');
+    cg.addColorStop(0,'rgba(222,204,130,0.55)');cg.addColorStop(1,'rgba(86,96,124,0.2)');
     bc.fillStyle=cg;bc.fill();
     // Cell border — dark green
-    bc.strokeStyle='rgba(60,72,18,0.35)';bc.lineWidth=0.5*sc;bc.stroke();
+    bc.strokeStyle='rgba(58,66,92,0.35)';bc.lineWidth=0.5*sc;bc.stroke();
   }
   // Hoffman shading on ICM — bright top-left, purple shadow bottom-right
   const icmShade=bc.createLinearGradient(icmX-icmR,icmY-icmR,icmX+icmR*0.5,icmY+icmR*0.5);
-  icmShade.addColorStop(0,'rgba(215,230,100,0.15)');
+  icmShade.addColorStop(0,'rgba(228,210,140,0.15)');
   icmShade.addColorStop(0.5,'rgba(0,0,0,0)');
-  icmShade.addColorStop(1,'rgba(70,60,110,0.2)');
+  icmShade.addColorStop(1,'rgba(58,66,98,0.2)');
   bc.beginPath();bc.ellipse(icmX,icmY,icmR,icmR*0.82,0,0,Math.PI*2);
   bc.fillStyle=icmShade;bc.fill();
   bc.restore();
@@ -1155,12 +1155,12 @@ function drawScene(){
     bc.beginPath();bc.arc(cx2,cy2,cr,0,Math.PI*2);
     const cg=bc.createRadialGradient(cx2-cr*0.3,cy2-cr*0.3,0,cx2,cy2,cr);
     // Hoffman: bright yellow-green highlight top-left, purple-dark bottom-right
-    cg.addColorStop(0,`rgba(198,215,80,${0.52+Math.sin(i)*0.12})`);
-    cg.addColorStop(0.5,`rgba(148,165,48,0.35)`);
-    cg.addColorStop(1,`rgba(78,68,112,0.18)`);
+    cg.addColorStop(0,`rgba(222,204,128,${0.52+Math.sin(i)*0.12})`);
+    cg.addColorStop(0.5,`rgba(132,141,160,0.35)`);
+    cg.addColorStop(1,`rgba(62,72,104,0.18)`);
     bc.fillStyle=cg;bc.fill();
     // Cell border
-    bc.strokeStyle=`rgba(88,75,125,${0.28+fl*4})`;bc.lineWidth=0.6*sc;bc.stroke();
+    bc.strokeStyle=`rgba(74,86,134,${0.28+fl*4})`;bc.lineWidth=0.6*sc;bc.stroke();
   }
 
   // ── HERNIATING CELLS ──
@@ -1176,11 +1176,11 @@ function drawScene(){
     const cRy=Math.max(1.2,(7.2-h*0.8-S.cellStretch*3-S.bridgeLen*3)*sc);
     bc.beginPath();bc.ellipse(hx,hy,Math.max(cRx,1.2),Math.max(cRy,1.2),Math.atan2(Math.sin(iA),Math.cos(iA)),0,Math.PI*2);
     const hg=bc.createRadialGradient(hx-cRx*0.3,hy-cRy*0.28,0,hx,hy,cRx);
-    hg.addColorStop(0,'rgba(205,225,82,0.88)');
-    hg.addColorStop(0.5,'rgba(148,165,45,0.5)');
-    hg.addColorStop(1,'rgba(75,65,115,0.25)');
+    hg.addColorStop(0,'rgba(226,208,134,0.88)');
+    hg.addColorStop(0.5,'rgba(132,141,160,0.5)');
+    hg.addColorStop(1,'rgba(64,76,116,0.25)');
     bc.fillStyle=hg;bc.fill();
-    bc.strokeStyle='rgba(85,75,125,0.55)';bc.lineWidth=0.85*sc;bc.stroke();
+    bc.strokeStyle='rgba(74,86,134,0.55)';bc.lineWidth=0.85*sc;bc.stroke();
 
     // Cytoplasmic bridge
     if(h<5&&pg>0.5&&S.cellStretch>0.08){
@@ -1190,7 +1190,7 @@ function drawScene(){
       bc.beginPath();
       bc.moveTo(hx+Math.cos(iA)*cRx*0.82,hy);
       bc.quadraticCurveTo((hx+nx)*0.5,(hy+ny)*0.5-1.8*sc,nx-Math.cos(iA)*cRx*0.35,ny);
-      bc.strokeStyle=`rgba(155,175,52,${0.42-S.bridgeLen*0.15})`;bc.lineWidth=bThin;bc.stroke();
+      bc.strokeStyle=`rgba(198,176,108,${0.42-S.bridgeLen*0.15})`;bc.lineWidth=bThin;bc.stroke();
       // Bridge laser hint
       if(S.step===6&&h===2&&DC[diff].hints){
         const bx=(hx+nx)*0.5+Math.cos(iA)*5*sc,by=(hy+ny)*0.5;
@@ -1211,7 +1211,7 @@ function drawScene(){
       embX+Math.sin(i*2.3+1)*embR*0.46,
       embY+Math.cos(i*1.7+0.6)*embR*0.46*(1-S.blastoC*0.07),
       (2.5+Math.sin(i)*0.9)*sc,0,Math.PI*2);
-    bc.fillStyle=`rgba(48,42,72,${0.52+Math.sin(i)*0.1})`;bc.fill();
+    bc.fillStyle=`rgba(44,50,78,${0.52+Math.sin(i)*0.1})`;bc.fill();
   }
 
   // ── ZONA BREACH — clean opening, NO brown spot ──
@@ -1233,7 +1233,7 @@ function drawScene(){
         bc.beginPath();
         const a1=iA+side*edgeA,a2=iA+side*(edgeA+0.08);
         bc.arc(embX,embY,embR,a1,a2);
-        bc.strokeStyle=side>0?'rgba(210,228,80,0.6)':'rgba(95,85,165,0.5)';
+        bc.strokeStyle=side>0?'rgba(230,212,140,0.6)':'rgba(86,104,170,0.5)';
         bc.lineWidth=3*sc;bc.stroke();
       }
     }
@@ -1252,15 +1252,15 @@ function drawScene(){
       const pRy=Math.max(0.8,(2.8-S.pullStretch*1.8))*sc;
       bc.beginPath();bc.ellipse(px,py,Math.max(pRx,0.8),Math.max(pRy,0.6),0,0,Math.PI*2);
       const pcg=bc.createRadialGradient(px,py,0,px,py,pRx);
-      pcg.addColorStop(0,'rgba(198,218,78,0.88)');pcg.addColorStop(1,'rgba(85,75,125,0.35)');
+      pcg.addColorStop(0,'rgba(222,204,128,0.88)');pcg.addColorStop(1,'rgba(74,86,134,0.35)');
       bc.fillStyle=pcg;bc.fill();
-      bc.strokeStyle='rgba(85,75,125,0.5)';bc.lineWidth=0.65*sc;bc.stroke();
+      bc.strokeStyle='rgba(74,86,134,0.5)';bc.lineWidth=0.65*sc;bc.stroke();
     }
     bc.beginPath();bc.moveTo(hernX,hernY);
     for(let t=0;t<=1;t+=0.05){
       bc.lineTo(hernX+(tipX2-hernX)*t,hernY+(tipY2-hernY)*t+Math.sin(t*Math.PI)*12*sc*S.pullStretch);
     }
-    bc.strokeStyle=`rgba(155,175,52,${0.5-S.pullStretch*0.22})`;
+    bc.strokeStyle=`rgba(198,176,108,${0.5-S.pullStretch*0.22})`;
     bc.lineWidth=Math.max(0.25,(1.7-S.pullStretch*1.4))*sc;bc.stroke();
     if(S.pullStretch>0.5){
       const wg=bc.createRadialGradient(hernX,hernY,0,hernX,hernY,9*sc);
@@ -1277,25 +1277,25 @@ function drawScene(){
     bc.save();
     // Top edge — yellow-green (bright side, like real photo)
     bc.beginPath();bc.moveTo(tipX,tipY-pipW*0.4);bc.lineTo(W+25,tipY-pipW);
-    bc.strokeStyle='rgba(192,212,58,0.88)';bc.lineWidth=2.0;bc.stroke();
+    bc.strokeStyle='rgba(222,202,124,0.88)';bc.lineWidth=2.0;bc.stroke();
     // Bottom edge — purple-blue (shadow side)
     bc.beginPath();bc.moveTo(tipX,tipY+pipW*0.4);bc.lineTo(W+25,tipY+pipW);
-    bc.strokeStyle='rgba(88,78,168,0.78)';bc.lineWidth=2.0;bc.stroke();
+    bc.strokeStyle='rgba(86,104,170,0.78)';bc.lineWidth=2.0;bc.stroke();
     // Glass body — very transparent grey
     bc.beginPath();
     bc.moveTo(tipX,tipY-pipW*0.4);bc.lineTo(W+25,tipY-pipW);
     bc.lineTo(W+25,tipY+pipW);bc.lineTo(tipX,tipY+pipW*0.4);bc.closePath();
     const gpg=bc.createLinearGradient(tipX,tipY-pipW,tipX,tipY+pipW);
-    gpg.addColorStop(0,'rgba(200,215,175,0.10)');
+    gpg.addColorStop(0,'rgba(196,204,218,0.10)');
     gpg.addColorStop(0.3,'rgba(220,228,208,0.16)');
-    gpg.addColorStop(0.5,'rgba(185,192,215,0.10)');
-    gpg.addColorStop(0.7,'rgba(155,145,195,0.08)');
-    gpg.addColorStop(1,'rgba(110,100,175,0.06)');
+    gpg.addColorStop(0.5,'rgba(168,176,202,0.10)');
+    gpg.addColorStop(0.7,'rgba(138,150,190,0.08)');
+    gpg.addColorStop(1,'rgba(98,112,176,0.06)');
     bc.fillStyle=gpg;bc.fill();
     // Lumen — dark opening at tip
     bc.beginPath();bc.arc(tipX,tipY,3.8*sc,0,Math.PI*2);
     bc.fillStyle='rgba(15,12,25,0.72)';bc.fill();
-    bc.strokeStyle='rgba(192,212,58,0.45)';bc.lineWidth=0.7;bc.stroke();
+    bc.strokeStyle='rgba(222,202,124,0.45)';bc.lineWidth=0.7;bc.stroke();
 
     // Cells inside pipette — visible through glass
     if(S.cells>0){
@@ -1303,11 +1303,11 @@ function drawScene(){
         const ccx=tipX+(c+0.55)*9.5*sc,ccy=tipY+Math.sin(c*1.3)*1.7*sc,ccr=(3.9-c*0.28)*sc;
         bc.beginPath();bc.arc(ccx,ccy,ccr,0,Math.PI*2);
         const ccg=bc.createRadialGradient(ccx,ccy,0,ccx,ccy,ccr);
-        ccg.addColorStop(0,'rgba(200,218,72,0.85)');
-        ccg.addColorStop(0.6,'rgba(138,155,42,0.5)');
-        ccg.addColorStop(1,'rgba(75,65,115,0.3)');
+        ccg.addColorStop(0,'rgba(222,204,128,0.85)');
+        ccg.addColorStop(0.6,'rgba(124,134,154,0.5)');
+        ccg.addColorStop(1,'rgba(64,76,116,0.3)');
         bc.fillStyle=ccg;bc.fill();
-        bc.strokeStyle='rgba(75,65,115,0.42)';bc.lineWidth=0.5*sc;bc.stroke();
+        bc.strokeStyle='rgba(64,76,116,0.42)';bc.lineWidth=0.5*sc;bc.stroke();
       }
     }
 
@@ -1319,8 +1319,8 @@ function drawScene(){
         const fx=hernX+(tipX-hernX)*pr,fy=hernY+Math.sin(S.t*4.5+s2)*2.5*sc;
         bc.beginPath();bc.arc(fx,fy,(4.0-pr*2.5)*sc,0,Math.PI*2);
         const fg=bc.createRadialGradient(fx,fy,0,fx,fy,(4.0-pr*2.5)*sc);
-        fg.addColorStop(0,`rgba(198,215,72,${0.76-pr*0.42})`);
-        fg.addColorStop(1,`rgba(75,65,115,${0.28-pr*0.18})`);
+        fg.addColorStop(0,`rgba(222,204,126,${0.76-pr*0.42})`);
+        fg.addColorStop(1,`rgba(64,76,116,${0.28-pr*0.18})`);
         bc.fillStyle=fg;bc.fill();
       }
     }
@@ -1340,9 +1340,9 @@ function drawScene(){
 
   // Hoffman overall directional shading on embryo — bright top-left, dark bottom-right
   const hofG=bc.createLinearGradient(embX-embR,embY-embR,embX+embR*0.55,embY+embR*0.55);
-  hofG.addColorStop(0,'rgba(215,230,100,0.07)');
+  hofG.addColorStop(0,'rgba(228,210,140,0.07)');
   hofG.addColorStop(0.45,'rgba(0,0,0,0)');
-  hofG.addColorStop(1,'rgba(65,55,105,0.12)');
+  hofG.addColorStop(1,'rgba(54,62,94,0.12)');
   bc.beginPath();bc.arc(embX,embY,embR,0,Math.PI*2);bc.fillStyle=hofG;bc.fill();
 
   // Zona laser beam flash
@@ -1357,6 +1357,12 @@ function drawScene(){
     bc.beginPath();bc.arc(bX,bY,16*sc*S.laserFlash,0,Math.PI*2);bc.fillStyle=lf;bc.fill();
   }
 
+  // ── DIC vignette — darken toward the rim for the Nomarski look ──
+  const _vg=bc.createRadialGradient(W*0.5,H*0.47,Math.min(W,H)*0.27,W*0.5,H*0.5,Math.max(W,H)*0.62);
+  _vg.addColorStop(0,'rgba(0,0,0,0)');
+  _vg.addColorStop(0.64,'rgba(0,0,0,0)');
+  _vg.addColorStop(1,'rgba(10,12,22,0.5)');
+  bc.fillStyle=_vg;bc.fillRect(0,0,W,H);
   return{hernX,hernY};
 }
 
