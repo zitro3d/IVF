@@ -633,7 +633,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
 <!-- MENU OVERLAY -->
 <div class="ov" id="mOv">
-  <div class="m-logo">EMBRYOTEK · IVF TRAINING · BUILD DIC-1</div>
+  <div class="m-logo">EMBRYOTEK · IVF TRAINING · BUILD DIC-2</div>
   <div class="m-title">Trophectoderm<br>Biopsy</div>
   <div class="m-sub">Day 5 Blastocyst · ESHRE 2024 Protocol<br>Laser-assisted · PGT specimen collection</div>
 
@@ -975,192 +975,126 @@ function applyBlur(ba){
 // Colors: cool blue-grey field, gold (lit) / steel-blue (shadow) shear that
 //         sculpts every cell into a bead, warm/cool zona fringe, rim vignette
 // ═══════════════════════════════════════
+// DIC / Nomarski palette (studies option 3)
+const DICM={
+  bg:'#6f7889', illum:'rgba(208,214,228,0.42)', illumMid:'rgba(110,120,140,0.14)',
+  shadow:'rgba(30,34,60,0.22)', debris:'rgba(40,46,64,1)',
+  cellMid:'#828b9e', stroke:'rgba(34,38,54,0.32)', gold:'#dcc77f', blue:'#576ca8',
+  nuc:'rgba(40,46,66,0.32)', nucleolus:'rgba(220,200,130,0.55)',
+  zonaFill:'rgba(120,128,150,0.16)', zonaInner:'rgba(170,178,196,0.4)',
+  rimGold:'rgba(228,212,150,0.78)', rimBlue:'rgba(86,104,166,0.66)',
+  fringeWarm:'rgba(224,200,120,0.5)', fringeCool:'rgba(86,104,170,0.5)',
+  cav:'rgba(196,202,216,0.32)',
+  gd:'#3e4658', ge:'#eef1f8', gm:'#9aa3b5', gb:'#2b3340', dome:'rgba(130,140,160,0.5)'
+};
+
 function drawScene(){
   const {W,H,sc,embX,embY,embR,bb,icmX,icmY,icmR,hernX,hernY}=EP();
-  const bc=oCtx;
-  const iA=S.zoneCutAngle, iD=S.zonaIndent*13*sc;
-  const fS=getFSharp();
+  const bc=oCtx, M=DICM, iA=S.zoneCutAngle, fS=getFSharp();
+  const zT=embR*0.115, zP=DC[diff].zP, yk=(1-S.blastoC*0.08);
 
-  // ── BACKGROUND — cool silver-grey like real dish ──
-  bc.fillStyle='#6f7889';
-  bc.fillRect(0,0,W,H);
-
-  // Hoffman illumination — uneven, slightly brighter upper-center
-  const illum=bc.createRadialGradient(W*0.5,H*0.38,0,W*0.5,H*0.5,Math.max(W,H)*0.7);
-  illum.addColorStop(0,'rgba(206,214,228,0.55)');
-  illum.addColorStop(0.3,'rgba(176,186,206,0.3)');
-  illum.addColorStop(0.7,'rgba(120,130,150,0.1)');
-  illum.addColorStop(1,'rgba(80,88,105,0.0)');
-  bc.fillStyle=illum;bc.fillRect(0,0,W,H);
-
-  // Subtle purple-blue cast in lower half (Hoffman shadow side)
-  const shadow=bc.createLinearGradient(0,H*0.4,0,H);
-  shadow.addColorStop(0,'rgba(0,0,0,0)');
-  shadow.addColorStop(1,'rgba(36,42,68,0.18)');
-  bc.fillStyle=shadow;bc.fillRect(0,0,W,H);
-
-  // Fine optical noise — media
-  for(let i=0;i<20;i++){
-    const px=((Math.sin(i*2.6+S.t*0.006)+1)*0.5*W);
-    const py=((Math.cos(i*1.8+S.t*0.005)+1)*0.5*H);
-    bc.beginPath();bc.arc(px,py,0.5+Math.sin(i)*0.3,0,Math.PI*2);
-    bc.fillStyle=`rgba(180,185,200,${0.04+Math.abs(Math.sin(i*1.1))*0.04})`;bc.fill();
-  }
-
-  // ── HOLDING PIPETTE — glass appearance from left ──
-  if(S.holdSuc>0){
-    const hAdv=Math.min(1,S.holdSuc/40);
-    const hTipX=embX-embR+2*sc;
-    const hStartX=-80;
-    const hX=hStartX+(hTipX-hStartX)*hAdv;
-    const hTipY=embY;
-    const hW=15*sc; // thick holding pipette
-
-    // Glass body — transparent with chroma fringing
+  // DIC bead-cell: diagonal gold(lit)->mid->steel-blue(shadow) shear
+  function dicCell(x,y,rx,ry,rot,opt){
+    opt=opt||{};
     bc.save();
-    bc.globalAlpha=0.82;
-    // Top edge — yellow-green (bright side)
-    bc.beginPath();bc.moveTo(hX,hTipY-hW);bc.lineTo(-20,hTipY-hW);
-    bc.strokeStyle='rgba(224,206,132,0.85)';bc.lineWidth=2.2;bc.stroke();
-    // Bottom edge — purple-blue (shadow side)
-    bc.beginPath();bc.moveTo(hX,hTipY+hW);bc.lineTo(-20,hTipY+hW);
-    bc.strokeStyle='rgba(92,108,172,0.75)';bc.lineWidth=2.2;bc.stroke();
-    // Glass body fill — very transparent
-    bc.beginPath();
-    bc.moveTo(hX,hTipY-hW);bc.lineTo(-20,hTipY-hW);
-    bc.lineTo(-20,hTipY+hW);bc.lineTo(hX,hTipY+hW);bc.closePath();
-    const gpg=bc.createLinearGradient(0,hTipY-hW,0,hTipY+hW);
-    gpg.addColorStop(0,'rgba(200,208,220,0.12)');
-    gpg.addColorStop(0.35,'rgba(235,240,225,0.22)');
-    gpg.addColorStop(0.65,'rgba(158,168,198,0.12)');
-    gpg.addColorStop(1,'rgba(104,116,176,0.08)');
-    bc.fillStyle=gpg;bc.fill();
-    // Lumen opening — dark circle
-    bc.beginPath();bc.arc(hX,hTipY,6*sc,0,Math.PI*2);
-    bc.fillStyle='rgba(20,18,30,0.7)';bc.fill();
-    bc.strokeStyle='rgba(224,206,132,0.5)';bc.lineWidth=0.8;bc.stroke();
+    bc.globalAlpha=(opt.alpha==null?1:opt.alpha);
+    bc.translate(x,y); bc.rotate(rot);
+    bc.beginPath(); bc.ellipse(0,0,Math.max(0.6,rx),Math.max(0.6,ry),0,0,Math.PI*2);
+    const g=bc.createLinearGradient(-rx*0.85,-ry*0.85,rx*0.85,ry*0.85);
+    g.addColorStop(0,M.gold); g.addColorStop(0.42,M.cellMid); g.addColorStop(0.6,M.cellMid); g.addColorStop(1,M.blue);
+    bc.fillStyle=g; bc.fill();
+    bc.lineWidth=Math.max(0.4,embR*0.0045); bc.strokeStyle=M.stroke; bc.stroke();
+    bc.beginPath(); bc.ellipse(-rx*0.2,-ry*0.26,rx*0.58,ry*0.56,0,0,Math.PI*2);
+    bc.fillStyle='rgba(248,242,210,0.16)'; bc.fill();
+    if(opt.nuc){
+      bc.beginPath(); bc.ellipse(rx*0.14,ry*0.14,rx*0.36,ry*0.36,0,0,Math.PI*2);
+      bc.fillStyle=M.nuc; bc.fill();
+      bc.beginPath(); bc.arc(rx*0.06,ry*0.06,Math.max(0.5,rx*0.13),0,Math.PI*2); bc.fillStyle=M.nucleolus; bc.fill();
+    }
     bc.restore();
   }
-
-  // ── ZONA PELLUCIDA — bright yellow-green wall, Hoffman style ──
-  // The zona is the most distinctive feature — golden-yellow, thin, sharp
-  bc.beginPath();
-  for(let a=0;a<Math.PI*2;a+=0.012){
+  // breach-aware zona radius (the live laser cut opens the rim near iA)
+  function rimR(a){
     const dA=Math.abs(((a-iA+Math.PI)%(Math.PI*2))-Math.PI);
-    const indent=Math.exp(-dA*dA*9)*iD;
-    // Zona breach — clean opening, no fill, just a gap
-    const ablW=Math.max(5,(S.zonePulses/DC[diff].zP)*35);
-    const abl=S.zoneCutGrowth*14*sc*Math.exp(-dA*dA*ablW);
-    const r=Math.max(embR*0.1,embR-indent-abl);
-    const px=embX+Math.cos(a)*r;
-    const py=embY+Math.sin(a)*r*(1-S.blastoC*0.08);
-    a<0.015?bc.moveTo(px,py):bc.lineTo(px,py);
+    const indent=Math.exp(-dA*dA*9)*S.zonaIndent*13*sc;
+    const abl=S.zoneCutGrowth*14*sc*Math.exp(-dA*dA*Math.max(5,(S.zonePulses/zP)*35));
+    return Math.max(embR*0.1, embR-indent-abl);
   }
-  bc.closePath();
-
-  // Interior fill — grey-purple like the real photos
-  const intG=bc.createRadialGradient(embX-8*sc,embY-6*sc,2,embX,embY,embR);
-  intG.addColorStop(0,'rgba(176,186,206,0.28)');
-  intG.addColorStop(0.4,'rgba(165,170,190,0.18)');
-  intG.addColorStop(1,'rgba(100,110,150,0.08)');
-  bc.fillStyle=intG;bc.fill();
-
-  // Zona wall — bright yellow-green top, purple shadow bottom (Hoffman)
-  // Top highlight
-  bc.beginPath();
-  for(let a=-Math.PI*0.7;a<Math.PI*0.7;a+=0.02){
-    const dA=Math.abs(((a-iA+Math.PI)%(Math.PI*2))-Math.PI);
-    const abl=S.zoneCutGrowth*14*sc*Math.exp(-dA*dA*Math.max(5,(S.zonePulses/DC[diff].zP)*35));
-    const r=embR-Math.exp(-dA*dA*9)*iD-abl;
-    a===-Math.PI*0.7?bc.moveTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08)):
-                     bc.lineTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08));
-  }
-  bc.strokeStyle=`rgba(230,212,140,${0.82+bb*2})`; // yellow-green bright
-  bc.lineWidth=(3.8-S.blastoC*1.2)*sc*Math.max(0.12,fS);bc.stroke();
-
-  // Shadow side
-  bc.beginPath();
-  for(let a=Math.PI*0.3;a<Math.PI*1.7;a+=0.02){
-    const dA=Math.abs(((a-iA+Math.PI)%(Math.PI*2))-Math.PI);
-    const abl=S.zoneCutGrowth*14*sc*Math.exp(-dA*dA*Math.max(5,(S.zonePulses/DC[diff].zP)*35));
-    const r=embR-Math.exp(-dA*dA*9)*iD-abl;
-    a===Math.PI*0.3?bc.moveTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08)):
-                    bc.lineTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08));
-  }
-  bc.strokeStyle=`rgba(86,104,170,${0.65+bb*1.5})`; // purple-blue shadow
-  bc.lineWidth=(2.5-S.blastoC*0.8)*sc*Math.max(0.1,fS);bc.stroke();
-
-  // Outer chroma fringe — yellow above, purple below
-  for(const[off,col,wid]of[
-    [-1.5,'rgba(226,204,120,0.22)',2],
-    [+1.5,'rgba(84,100,166,0.18)',2],
-  ]){
-    bc.beginPath();
-    for(let a=0;a<Math.PI*2;a+=0.04){
-      const dA=Math.abs(((a-iA+Math.PI)%(Math.PI*2))-Math.PI);
-      const r=embR-Math.exp(-dA*dA*9)*iD+off;
-      bc.lineTo(embX+Math.cos(a)*r,embY+Math.sin(a)*r*(1-S.blastoC*0.08)+off*0.4);
-    }
-    bc.closePath();bc.strokeStyle=col;bc.lineWidth=wid*sc;bc.stroke();
+  function rimPath(a0,a1){
+    let st=false;
+    for(let a=a0;a<=a1+0.0001;a+=0.03){ const r=rimR(a),px=embX+Math.cos(a)*r,py=embY+Math.sin(a)*r*yk; st?bc.lineTo(px,py):(bc.moveTo(px,py),st=true); }
   }
 
-  // ── ICM — dense, textured, yellow-green mass ──
-  bc.save();
-  // Base fill
-  const icmG=bc.createRadialGradient(icmX-4*sc,icmY-4*sc,1,icmX,icmY,icmR);
-  icmG.addColorStop(0,'rgba(206,186,118,0.72)');
-  icmG.addColorStop(0.4,'rgba(132,141,160,0.58)');
-  icmG.addColorStop(0.8,'rgba(96,106,128,0.4)');
-  icmG.addColorStop(1,'rgba(70,78,104,0.2)');
-  bc.beginPath();bc.ellipse(icmX,icmY,icmR,icmR*0.82,S.icmAngle*0.2,0,Math.PI*2);
-  bc.fillStyle=icmG;bc.fill();
-  // Texture — small cell-like blobs
-  for(let i=0;i<14;i++){
-    const a=(i/14)*Math.PI*2+S.t*0.008;
-    const r=icmR*(0.25+Math.sin(i*2.3)*0.35);
-    const cx2=icmX+Math.cos(a)*r,cy2=icmY+Math.sin(a)*r*0.85;
-    const cr=(3.5+Math.sin(i*1.8)*1.5)*sc;
-    bc.beginPath();bc.arc(cx2,cy2,cr,0,Math.PI*2);
-    const cg=bc.createRadialGradient(cx2-cr*0.3,cy2-cr*0.3,0,cx2,cy2,cr);
-    cg.addColorStop(0,'rgba(222,204,130,0.55)');cg.addColorStop(1,'rgba(86,96,124,0.2)');
-    bc.fillStyle=cg;bc.fill();
-    // Cell border — dark green
-    bc.strokeStyle='rgba(58,66,92,0.35)';bc.lineWidth=0.5*sc;bc.stroke();
+  // ── FIELD ──
+  bc.fillStyle=M.bg; bc.fillRect(0,0,W,H);
+  let il=bc.createRadialGradient(W*0.5,H*0.4,0,W*0.5,H*0.52,Math.max(W,H)*0.72);
+  il.addColorStop(0,M.illum); il.addColorStop(0.4,M.illumMid); il.addColorStop(1,'rgba(0,0,0,0)');
+  bc.fillStyle=il; bc.fillRect(0,0,W,H);
+  let shd=bc.createLinearGradient(0,H*0.45,0,H); shd.addColorStop(0,'rgba(0,0,0,0)'); shd.addColorStop(1,M.shadow);
+  bc.fillStyle=shd; bc.fillRect(0,0,W,H);
+  bc.save(); bc.fillStyle=M.debris;
+  for(let i=0;i<26;i++){
+    const dx=((Math.sin(i*2.6+S.t*0.05)+1)*0.5*W), dy=((Math.cos(i*1.8+S.t*0.04)+1)*0.5*H);
+    const dd=Math.hypot(dx-embX,dy-embY); if(dd<embR*1.06&&dd>embR*0.42) continue;
+    bc.globalAlpha=0.18+Math.abs(Math.sin(i*1.7))*0.22;
+    bc.beginPath(); bc.arc(dx,dy,(0.5+Math.abs(Math.sin(i))*1.8)*sc,0,Math.PI*2); bc.fill();
   }
-  // Hoffman shading on ICM — bright top-left, purple shadow bottom-right
-  const icmShade=bc.createLinearGradient(icmX-icmR,icmY-icmR,icmX+icmR*0.5,icmY+icmR*0.5);
-  icmShade.addColorStop(0,'rgba(228,210,140,0.15)');
-  icmShade.addColorStop(0.5,'rgba(0,0,0,0)');
-  icmShade.addColorStop(1,'rgba(58,66,98,0.2)');
-  bc.beginPath();bc.ellipse(icmX,icmY,icmR,icmR*0.82,0,0,Math.PI*2);
-  bc.fillStyle=icmShade;bc.fill();
   bc.restore();
 
-  // Blastocoel cavity — clearer, empty space (grey-silver)
-  const cavG=bc.createRadialGradient(embX+18*sc,embY+5*sc,1,embX+14*sc,embY+4*sc,embR*0.48);
-  cavG.addColorStop(0,`rgba(210,215,228,${0.22*(1-S.blastoC)})`);
-  cavG.addColorStop(0.5,`rgba(175,180,200,${0.1*(1-S.blastoC)})`);
-  cavG.addColorStop(1,'rgba(0,0,0,0)');
-  bc.beginPath();bc.ellipse(embX+10*sc,embY+3*sc,embR*0.35*(1-S.blastoC*0.25),embR*0.28*(1-S.blastoC*0.35),0,0,Math.PI*2);
-  bc.fillStyle=cavG;bc.fill();
+  // ── EMBRYO BODY ──
+  bc.beginPath(); bc.arc(embX,embY,embR,0,Math.PI*2); bc.fillStyle=M.zonaFill; bc.fill();
+  let cav=bc.createRadialGradient(embX-embR*0.12,embY-embR*0.1,embR*0.04,embX,embY,embR*0.66);
+  cav.addColorStop(0,M.cav); cav.addColorStop(0.6,'rgba(196,202,216,0.07)'); cav.addColorStop(1,'rgba(0,0,0,0)');
+  bc.beginPath(); bc.arc(embX,embY,embR-zT,0,Math.PI*2); bc.fillStyle=cav; bc.fill();
 
-  // ── TE CELLS — textured ring, yellow-green tones ──
-  for(let i=0;i<24;i++){
-    const ba=(i/24)*Math.PI*2;
-    const fl=Math.sin(S.t*1.6+S.mPh[i])*S.mAmp[i];
-    const dA=Math.abs(((ba-iA+Math.PI)%(Math.PI*2))-Math.PI);
-    const r=embR*(0.7+Math.sin(i*3.5)*0.07+fl-Math.exp(-dA*dA*6)*S.zonaIndent*0.02);
-    const cx2=embX+Math.cos(ba)*r,cy2=embY+Math.sin(ba)*r*(1-S.blastoC*0.09);
-    const cr=(5.8+Math.sin(i*2.0)*2.1)*sc*(1+fl*3.5);
-    bc.beginPath();bc.arc(cx2,cy2,cr,0,Math.PI*2);
-    const cg=bc.createRadialGradient(cx2-cr*0.3,cy2-cr*0.3,0,cx2,cy2,cr);
-    // Hoffman: bright yellow-green highlight top-left, purple-dark bottom-right
-    cg.addColorStop(0,`rgba(222,204,128,${0.52+Math.sin(i)*0.12})`);
-    cg.addColorStop(0.5,`rgba(132,141,160,0.35)`);
-    cg.addColorStop(1,`rgba(62,72,104,0.18)`);
-    bc.fillStyle=cg;bc.fill();
-    // Cell border
-    bc.strokeStyle=`rgba(74,86,134,${0.28+fl*4})`;bc.lineWidth=0.6*sc;bc.stroke();
+  // cells clipped inside the zona
+  bc.save();
+  bc.beginPath(); bc.arc(embX,embY,embR-zT*0.78,0,Math.PI*2); bc.clip();
+  const TE=48;
+  for(let i=0;i<TE;i++){
+    const a=i/TE*Math.PI*2;
+    const fl=Math.sin(S.t*1.4+i*1.7)*0.04;
+    const teR=embR*0.07*(0.82+(Math.sin(i*12.9)*0.5+0.5)*0.46)*(1+fl);
+    const rr=embR-zT-teR*0.8;
+    dicCell(embX+Math.cos(a)*rr, embY+Math.sin(a)*rr*yk, teR*1.4, teR*0.92, a+Math.PI/2, {nuc:(i%3===0), alpha:0.92});
+  }
+  const ICM=20;
+  for(let i=0;i<ICM;i++){
+    const ang=i*2.39996, rad=Math.sqrt((i+0.5)/ICM)*icmR*0.96;
+    const cr=embR*0.052*(0.85+(Math.sin(i*7.3)*0.5+0.5)*0.5);
+    dicCell(icmX+Math.cos(ang)*rad*1.12, icmY+Math.sin(ang)*rad*0.82, cr*1.1, cr, i*0.7, {nuc:true, alpha:0.96});
+  }
+  bc.globalAlpha=0.5; bc.fillStyle=M.nuc;
+  for(let i=0;i<10;i++){
+    const ang=i*2.0, rad=Math.sqrt((i+0.5)/10)*(embR-zT)*0.46;
+    bc.beginPath(); bc.arc(embX+Math.cos(ang)*rad,embY+Math.sin(ang)*rad,Math.max(0.6,embR*0.012),0,Math.PI*2); bc.fill();
+  }
+  bc.globalAlpha=1;
+  bc.restore();
+
+  // sphere shading
+  bc.save();
+  bc.beginPath(); bc.arc(embX,embY,embR-zT*0.7,0,Math.PI*2); bc.clip();
+  let spg=bc.createRadialGradient(embX-embR*0.32,embY-embR*0.36,embR*0.1,embX,embY,embR*1.05);
+  spg.addColorStop(0,'rgba(255,255,255,0.13)'); spg.addColorStop(0.55,'rgba(255,255,255,0)'); spg.addColorStop(1,'rgba(18,20,40,0.24)');
+  bc.fillStyle=spg; bc.fillRect(embX-embR,embY-embR,embR*2,embR*2);
+  bc.restore();
+
+  // ── ZONA SHELL — gold top / steel-blue bottom, breach-aware ──
+  bc.lineWidth=Math.max(1,embR*0.02)*Math.max(0.18,fS);
+  bc.beginPath(); rimPath(Math.PI,Math.PI*2); bc.strokeStyle=M.rimGold; bc.stroke();
+  bc.lineWidth=Math.max(0.8,embR*0.015)*Math.max(0.16,fS);
+  bc.beginPath(); rimPath(0,Math.PI); bc.strokeStyle=M.rimBlue; bc.stroke();
+  bc.beginPath(); bc.arc(embX,embY,embR-zT,0,Math.PI*2); bc.strokeStyle=M.zonaInner; bc.lineWidth=Math.max(0.5,embR*0.01); bc.stroke();
+  bc.lineWidth=Math.max(0.6,embR*0.012);
+  bc.beginPath(); let s2=false; for(let a=Math.PI;a<=Math.PI*2+0.0001;a+=0.05){const r=rimR(a)+embR*0.006,px=embX+Math.cos(a)*r,py=embY+Math.sin(a)*r*yk; s2?bc.lineTo(px,py):(bc.moveTo(px,py),s2=true);} bc.strokeStyle=M.fringeWarm; bc.stroke();
+  bc.beginPath(); s2=false; for(let a=0;a<=Math.PI+0.0001;a+=0.05){const r=rimR(a)+embR*0.006,px=embX+Math.cos(a)*r,py=embY+Math.sin(a)*r*yk; s2?bc.lineTo(px,py):(bc.moveTo(px,py),s2=true);} bc.strokeStyle=M.fringeCool; bc.stroke();
+
+  if(S.zoneCutGrowth>0.1){
+    const bX=embX+Math.cos(iA)*embR, bY=embY+Math.sin(iA)*embR*yk, os=S.zoneCutGrowth*13*sc;
+    let og=bc.createRadialGradient(bX,bY,0,bX,bY,os);
+    og.addColorStop(0,'rgba(214,220,232,0.4)'); og.addColorStop(0.4,'rgba(180,188,206,0.16)'); og.addColorStop(1,'rgba(0,0,0,0)');
+    bc.beginPath(); bc.arc(bX,bY,os,0,Math.PI*2); bc.fillStyle=og; bc.fill();
   }
 
   // ── HERNIATING CELLS ──
@@ -1170,199 +1104,98 @@ function drawScene(){
     const pg=Math.min(1,hS*(6/(h+1)));
     const sX=h*(8.5+S.cellStretch*13)*sc*pg;
     const sY=Math.sin(h*1.1+S.t*0.4)*(3.0-S.cellStretch*1.5)*sc*(1-S.bridgeLen*0.55);
-    const hx=hernX+Math.cos(iA)*sX+sY*0.2;
-    const hy=hernY+Math.sin(iA)*sX*0.48+sY;
+    const hx=hernX+Math.cos(iA)*sX+sY*0.2, hy=hernY+Math.sin(iA)*sX*0.48+sY;
     const cRx=(7.2-h*0.8+S.cellStretch*6+S.bridgeLen*3.5)*sc;
-    const cRy=Math.max(1.2,(7.2-h*0.8-S.cellStretch*3-S.bridgeLen*3)*sc);
-    bc.beginPath();bc.ellipse(hx,hy,Math.max(cRx,1.2),Math.max(cRy,1.2),Math.atan2(Math.sin(iA),Math.cos(iA)),0,Math.PI*2);
-    const hg=bc.createRadialGradient(hx-cRx*0.3,hy-cRy*0.28,0,hx,hy,cRx);
-    hg.addColorStop(0,'rgba(226,208,134,0.88)');
-    hg.addColorStop(0.5,'rgba(132,141,160,0.5)');
-    hg.addColorStop(1,'rgba(64,76,116,0.25)');
-    bc.fillStyle=hg;bc.fill();
-    bc.strokeStyle='rgba(74,86,134,0.55)';bc.lineWidth=0.85*sc;bc.stroke();
-
-    // Cytoplasmic bridge
-    if(h<5&&pg>0.5&&S.cellStretch>0.08){
-      const nx=hernX+Math.cos(iA)*(h+1)*(8.5+S.cellStretch*13)*sc*pg;
-      const ny=hernY+Math.sin(iA)*(h+1)*(8.5+S.cellStretch*13)*sc*pg*0.48;
-      const bThin=Math.max(0.25,(1.9-S.cellStretch*1.2-S.bridgeLen*1.1))*sc;
-      bc.beginPath();
-      bc.moveTo(hx+Math.cos(iA)*cRx*0.82,hy);
-      bc.quadraticCurveTo((hx+nx)*0.5,(hy+ny)*0.5-1.8*sc,nx-Math.cos(iA)*cRx*0.35,ny);
-      bc.strokeStyle=`rgba(198,176,108,${0.42-S.bridgeLen*0.15})`;bc.lineWidth=bThin;bc.stroke();
-      // Bridge laser hint
-      if(S.step===6&&h===2&&DC[diff].hints){
-        const bx=(hx+nx)*0.5+Math.cos(iA)*5*sc,by=(hy+ny)*0.5;
-        bc.beginPath();bc.arc(bx,by,4*sc,0,Math.PI*2);
-        bc.strokeStyle=`rgba(255,94,46,${0.28+Math.sin(S.t*3)*0.12})`;bc.lineWidth=1.0;bc.stroke();
-      }
-    }
-    // Target hint
+    const cRy=Math.max(1.4,(7.2-h*0.8-S.cellStretch*3-S.bridgeLen*3)*sc);
+    dicCell(hx,hy, Math.max(cRx,1.4), Math.max(cRy,1.4), iA, {nuc:h<2, alpha:0.95});
     if((S.step===4||S.step===5)&&S.cells===0&&DC[diff].hints){
-      bc.beginPath();bc.ellipse(hx,hy,cRx+3*sc,cRy+3*sc,0,0,Math.PI*2);
-      bc.strokeStyle=`rgba(47,191,110,${0.14+Math.sin(S.t*2.3+h)*0.07})`;bc.lineWidth=0.9;bc.stroke();
-    }
-  }
-
-  // Nuclei — dark spots
-  for(let i=0;i<8;i++){
-    bc.beginPath();bc.arc(
-      embX+Math.sin(i*2.3+1)*embR*0.46,
-      embY+Math.cos(i*1.7+0.6)*embR*0.46*(1-S.blastoC*0.07),
-      (2.5+Math.sin(i)*0.9)*sc,0,Math.PI*2);
-    bc.fillStyle=`rgba(44,50,78,${0.52+Math.sin(i)*0.1})`;bc.fill();
-  }
-
-  // ── ZONA BREACH — clean opening, NO brown spot ──
-  // Just enhance the gap visibility with a subtle light bleed-through
-  if(S.zoneCutGrowth>0.1){
-    const bX=embX+Math.cos(iA)*embR,bY=embY+Math.sin(iA)*embR*0.89;
-    // Light bleed through opening — background color shows through
-    const openSize=S.zoneCutGrowth*12*sc;
-    const openG=bc.createRadialGradient(bX,bY,0,bX,bY,openSize);
-    openG.addColorStop(0,'rgba(200,210,225,0.35)'); // grey-silver background color
-    openG.addColorStop(0.4,'rgba(185,192,210,0.15)');
-    openG.addColorStop(1,'rgba(0,0,0,0)');
-    bc.beginPath();bc.arc(bX,bY,openSize,0,Math.PI*2);
-    bc.fillStyle=openG;bc.fill();
-    // After full cut — show zona edges curling slightly (realistic)
-    if(S.zoneCut){
-      const edgeA=0.12*S.zoneCutGrowth;
-      for(const side of[-1,1]){
-        bc.beginPath();
-        const a1=iA+side*edgeA,a2=iA+side*(edgeA+0.08);
-        bc.arc(embX,embY,embR,a1,a2);
-        bc.strokeStyle=side>0?'rgba(230,212,140,0.6)':'rgba(86,104,170,0.5)';
-        bc.lineWidth=3*sc;bc.stroke();
-      }
+      bc.beginPath(); bc.ellipse(hx,hy,cRx+3*sc,cRy+3*sc,0,0,Math.PI*2);
+      bc.strokeStyle='rgba(47,191,110,'+(0.14+Math.sin(S.t*2.3+h)*0.07)+')'; bc.lineWidth=0.9; bc.stroke();
     }
   }
 
   // ── PULL BRIDGE ──
   if(S.pullStretch>0.05&&S.cells>=5&&S.biopsy>5){
-    const tipX2=scope.width-S.biopsy/100*(scope.width-hernX-7*sc);
-    const tipY2=hernY+2;
-    const numPullCells=Math.min(S.cells,6);
-    for(let pc=0;pc<numPullCells;pc++){
-      const t=pc/(numPullCells-1||1);
-      const px=hernX+(tipX2-hernX)*t;
-      const py=hernY+(tipY2-hernY)*t+Math.sin(t*Math.PI)*12*sc*S.pullStretch;
-      const pRx=(4.8-pc*0.45+S.pullStretch*2.8)*sc;
-      const pRy=Math.max(0.8,(2.8-S.pullStretch*1.8))*sc;
-      bc.beginPath();bc.ellipse(px,py,Math.max(pRx,0.8),Math.max(pRy,0.6),0,0,Math.PI*2);
-      const pcg=bc.createRadialGradient(px,py,0,px,py,pRx);
-      pcg.addColorStop(0,'rgba(222,204,128,0.88)');pcg.addColorStop(1,'rgba(74,86,134,0.35)');
-      bc.fillStyle=pcg;bc.fill();
-      bc.strokeStyle='rgba(74,86,134,0.5)';bc.lineWidth=0.65*sc;bc.stroke();
+    const tipX2=W-S.biopsy/100*(W-hernX-7*sc), tipY2=hernY+2, npc=Math.min(S.cells,6);
+    for(let pc=0;pc<npc;pc++){
+      const t=pc/(npc-1||1);
+      const px=hernX+(tipX2-hernX)*t, py=hernY+(tipY2-hernY)*t+Math.sin(t*Math.PI)*12*sc*S.pullStretch;
+      dicCell(px,py,(4.8-pc*0.45+S.pullStretch*2.8)*sc, Math.max(0.9,(2.8-S.pullStretch*1.8))*sc, iA, {alpha:0.9});
     }
-    bc.beginPath();bc.moveTo(hernX,hernY);
-    for(let t=0;t<=1;t+=0.05){
-      bc.lineTo(hernX+(tipX2-hernX)*t,hernY+(tipY2-hernY)*t+Math.sin(t*Math.PI)*12*sc*S.pullStretch);
-    }
-    bc.strokeStyle=`rgba(198,176,108,${0.5-S.pullStretch*0.22})`;
-    bc.lineWidth=Math.max(0.25,(1.7-S.pullStretch*1.4))*sc;bc.stroke();
-    if(S.pullStretch>0.5){
-      const wg=bc.createRadialGradient(hernX,hernY,0,hernX,hernY,9*sc);
-      wg.addColorStop(0,`rgba(255,80,20,${S.pullStretch*0.38})`);wg.addColorStop(1,'rgba(255,0,0,0)');
-      bc.beginPath();bc.arc(hernX,hernY,9*sc,0,Math.PI*2);bc.fillStyle=wg;bc.fill();
-    }
+    bc.beginPath(); bc.moveTo(hernX,hernY);
+    for(let t=0;t<=1;t+=0.05) bc.lineTo(hernX+(tipX2-hernX)*t,hernY+(tipY2-hernY)*t+Math.sin(t*Math.PI)*12*sc*S.pullStretch);
+    bc.strokeStyle='rgba(198,176,108,'+(0.5-S.pullStretch*0.22)+')'; bc.lineWidth=Math.max(0.3,(1.7-S.pullStretch*1.4))*sc; bc.stroke();
+    if(S.pullStretch>0.5){ let wg=bc.createRadialGradient(hernX,hernY,0,hernX,hernY,9*sc); wg.addColorStop(0,'rgba(255,80,20,'+(S.pullStretch*0.38)+')'); wg.addColorStop(1,'rgba(255,0,0,0)'); bc.beginPath(); bc.arc(hernX,hernY,9*sc,0,Math.PI*2); bc.fillStyle=wg; bc.fill(); }
   }
 
-  // ── BIOPSY PIPETTE — glass, transparent, chromatic fringes ──
-  if(S.biopsy>0){
-    const tipX=W-S.biopsy/100*(W-hernX-7*sc),tipY=hernY+2;
-    const pipW=10*sc; // half-height of pipette
-
+  // ── HOLDING PIPETTE (left, DIC glass) ──
+  if(S.holdSuc>0){
+    const hAdv=Math.min(1,S.holdSuc/40);
+    const hTipX=embX-embR+3*sc, hX=-90+(hTipX+90)*hAdv, cyP=embY;
+    const hh=embR*0.6, lip=hh*0.3, bore=hh*0.4;
     bc.save();
-    // Top edge — yellow-green (bright side, like real photo)
-    bc.beginPath();bc.moveTo(tipX,tipY-pipW*0.4);bc.lineTo(W+25,tipY-pipW);
-    bc.strokeStyle='rgba(222,202,124,0.88)';bc.lineWidth=2.0;bc.stroke();
-    // Bottom edge — purple-blue (shadow side)
-    bc.beginPath();bc.moveTo(tipX,tipY+pipW*0.4);bc.lineTo(W+25,tipY+pipW);
-    bc.strokeStyle='rgba(86,104,170,0.78)';bc.lineWidth=2.0;bc.stroke();
-    // Glass body — very transparent grey
     bc.beginPath();
-    bc.moveTo(tipX,tipY-pipW*0.4);bc.lineTo(W+25,tipY-pipW);
-    bc.lineTo(W+25,tipY+pipW);bc.lineTo(tipX,tipY+pipW*0.4);bc.closePath();
-    const gpg=bc.createLinearGradient(tipX,tipY-pipW,tipX,tipY+pipW);
-    gpg.addColorStop(0,'rgba(196,204,218,0.10)');
-    gpg.addColorStop(0.3,'rgba(220,228,208,0.16)');
-    gpg.addColorStop(0.5,'rgba(168,176,202,0.10)');
-    gpg.addColorStop(0.7,'rgba(138,150,190,0.08)');
-    gpg.addColorStop(1,'rgba(98,112,176,0.06)');
-    bc.fillStyle=gpg;bc.fill();
-    // Lumen — dark opening at tip
-    bc.beginPath();bc.arc(tipX,tipY,3.8*sc,0,Math.PI*2);
-    bc.fillStyle='rgba(15,12,25,0.72)';bc.fill();
-    bc.strokeStyle='rgba(222,202,124,0.45)';bc.lineWidth=0.7;bc.stroke();
-
-    // Cells inside pipette — visible through glass
-    if(S.cells>0){
-      for(let c=0;c<Math.min(S.cells,7);c++){
-        const ccx=tipX+(c+0.55)*9.5*sc,ccy=tipY+Math.sin(c*1.3)*1.7*sc,ccr=(3.9-c*0.28)*sc;
-        bc.beginPath();bc.arc(ccx,ccy,ccr,0,Math.PI*2);
-        const ccg=bc.createRadialGradient(ccx,ccy,0,ccx,ccy,ccr);
-        ccg.addColorStop(0,'rgba(222,204,128,0.85)');
-        ccg.addColorStop(0.6,'rgba(124,134,154,0.5)');
-        ccg.addColorStop(1,'rgba(64,76,116,0.3)');
-        bc.fillStyle=ccg;bc.fill();
-        bc.strokeStyle='rgba(64,76,116,0.42)';bc.lineWidth=0.5*sc;bc.stroke();
-      }
-    }
-
-    // Aspiration flow particles
-    if(S.bioSuc>10&&S.biopsy>72&&S.cells<8&&S.zoneCut&&S.hernProg>0.55){
-      const fl=S.bioSuc/100;
-      for(let s2=0;s2<3;s2++){
-        const pr=(S.t*fl*1.2+s2*0.33)%1;
-        const fx=hernX+(tipX-hernX)*pr,fy=hernY+Math.sin(S.t*4.5+s2)*2.5*sc;
-        bc.beginPath();bc.arc(fx,fy,(4.0-pr*2.5)*sc,0,Math.PI*2);
-        const fg=bc.createRadialGradient(fx,fy,0,fx,fy,(4.0-pr*2.5)*sc);
-        fg.addColorStop(0,`rgba(222,204,126,${0.76-pr*0.42})`);
-        fg.addColorStop(1,`rgba(64,76,116,${0.28-pr*0.18})`);
-        bc.fillStyle=fg;bc.fill();
-      }
-    }
-
-    // Junction laser flash
-    if(S.laserFlash>0.01&&S.step===6){
-      const bx=hernX+Math.cos(iA)*4*sc,by=hernY;
-      const jf=bc.createRadialGradient(bx,by,0,bx,by,14*sc*S.laserFlash);
-      jf.addColorStop(0,`rgba(255,255,220,${S.laserFlash})`);
-      jf.addColorStop(0.3,`rgba(255,60,10,${S.laserFlash*0.7})`);
-      jf.addColorStop(1,'rgba(255,0,0,0)');
-      bc.beginPath();bc.arc(bx,by,14*sc*S.laserFlash,0,Math.PI*2);bc.fillStyle=jf;bc.fill();
-    }
-
+    bc.moveTo(-2,cyP-hh); bc.lineTo(hX-lip,cyP-hh);
+    bc.quadraticCurveTo(hX,cyP-hh,hX,cyP-hh+lip);
+    bc.lineTo(hX,cyP-bore); bc.quadraticCurveTo(hX-bore*0.5,cyP,hX,cyP+bore);
+    bc.lineTo(hX,cyP+hh-lip); bc.quadraticCurveTo(hX,cyP+hh,hX-lip,cyP+hh);
+    bc.lineTo(-2,cyP+hh); bc.closePath();
+    let bg=bc.createLinearGradient(0,cyP-hh,0,cyP+hh);
+    bg.addColorStop(0,M.gd); bg.addColorStop(0.12,M.ge); bg.addColorStop(0.4,M.gm); bg.addColorStop(0.66,M.gm); bg.addColorStop(0.88,M.ge); bg.addColorStop(1,M.gd);
+    bc.fillStyle=bg; bc.fill();
+    bc.lineWidth=Math.max(0.8,embR*0.016); bc.strokeStyle=M.gd; bc.stroke();
+    bc.save(); bc.globalAlpha=0.4; bc.fillStyle=M.gb; bc.fillRect(-2,cyP-bore*0.7,hX+2,bore*1.4); bc.restore();
+    bc.save(); bc.globalAlpha=0.7; bc.strokeStyle=M.ge; bc.lineWidth=Math.max(0.6,embR*0.014);
+    bc.beginPath(); bc.moveTo(0,cyP-hh*0.6); bc.lineTo(hX-lip*0.7,cyP-hh*0.6); bc.stroke(); bc.restore();
+    bc.save();
+    bc.beginPath(); bc.ellipse(hX,cyP,bore*0.85,bore*0.95,0,Math.PI*0.5,Math.PI*1.5); bc.closePath(); bc.clip();
+    bc.fillStyle=M.dome; bc.fillRect(hX-bore,cyP-bore,bore*1.3,bore*2);
+    dicCell(hX-bore*0.25,cyP-bore*0.3,bore*0.3,bore*0.26,0.3,{});
+    dicCell(hX-bore*0.32,cyP+bore*0.32,bore*0.28,bore*0.24,-0.4,{});
+    bc.restore();
+    bc.beginPath(); bc.ellipse(hX,cyP,bore*0.85,bore*0.95,0,Math.PI*0.5,Math.PI*1.5); bc.strokeStyle=M.rimGold; bc.lineWidth=Math.max(0.5,embR*0.01); bc.stroke();
     bc.restore();
   }
 
-  // Hoffman overall directional shading on embryo — bright top-left, dark bottom-right
-  const hofG=bc.createLinearGradient(embX-embR,embY-embR,embX+embR*0.55,embY+embR*0.55);
-  hofG.addColorStop(0,'rgba(228,210,140,0.07)');
-  hofG.addColorStop(0.45,'rgba(0,0,0,0)');
-  hofG.addColorStop(1,'rgba(54,62,94,0.12)');
-  bc.beginPath();bc.arc(embX,embY,embR,0,Math.PI*2);bc.fillStyle=hofG;bc.fill();
-
-  // Zona laser beam flash
-  if(S.laserFlash>0.01&&S.step<=3){
-    const bX=embX+Math.cos(iA)*embR,bY=embY+Math.sin(iA)*embR*0.89;
-    bc.beginPath();bc.moveTo(W,bY);bc.lineTo(bX,bY);
-    bc.strokeStyle=`rgba(255,44,4,${S.laserFlash*0.58})`;bc.lineWidth=1.5*S.laserFlash;bc.stroke();
-    const lf=bc.createRadialGradient(bX,bY,0,bX,bY,16*sc*S.laserFlash);
-    lf.addColorStop(0,`rgba(255,255,210,${S.laserFlash})`);
-    lf.addColorStop(0.25,`rgba(255,60,10,${S.laserFlash*0.7})`);
-    lf.addColorStop(1,'rgba(255,0,0,0)');
-    bc.beginPath();bc.arc(bX,bY,16*sc*S.laserFlash,0,Math.PI*2);bc.fillStyle=lf;bc.fill();
+  // ── BIOPSY PIPETTE (right, DIC glass) ──
+  if(S.biopsy>0){
+    const tipX=W-S.biopsy/100*(W-hernX-7*sc), tipY=hernY+2, hh2=embR*0.12;
+    bc.save();
+    bc.globalAlpha=0.22; bc.fillStyle=M.gm; bc.fillRect(tipX,tipY-hh2,W-tipX+4,hh2*2); bc.globalAlpha=1;
+    bc.strokeStyle=M.ge; bc.lineWidth=Math.max(0.8,embR*0.012);
+    bc.beginPath(); bc.moveTo(W+4,tipY-hh2); bc.lineTo(tipX,tipY-hh2); bc.stroke();
+    bc.beginPath(); bc.moveTo(W+4,tipY+hh2); bc.lineTo(tipX,tipY+hh2); bc.stroke();
+    bc.save(); bc.globalAlpha=0.7; bc.strokeStyle=M.gd; bc.lineWidth=Math.max(0.5,embR*0.006);
+    bc.beginPath(); bc.moveTo(W+4,tipY-hh2-embR*0.013); bc.lineTo(tipX,tipY-hh2-embR*0.013); bc.stroke();
+    bc.beginPath(); bc.moveTo(W+4,tipY+hh2+embR*0.013); bc.lineTo(tipX,tipY+hh2+embR*0.013); bc.stroke(); bc.restore();
+    bc.beginPath(); bc.ellipse(tipX,tipY,hh2*0.5,hh2*0.95,0,0,Math.PI*2);
+    bc.save(); bc.globalAlpha=0.3; bc.fillStyle=M.gb; bc.fill(); bc.restore();
+    bc.strokeStyle=M.ge; bc.lineWidth=Math.max(0.5,embR*0.009); bc.stroke();
+    for(let c=0;c<Math.min(S.cells,7);c++){
+      const ccx=tipX+(c+0.6)*hh2*0.9, ccy=tipY+Math.sin(c*1.3)*hh2*0.18, ccr=(hh2*0.42)*(1-c*0.03);
+      dicCell(ccx,ccy,ccr,ccr*0.9,c*0.7,{nuc:c%2===0,alpha:0.92});
+    }
+    if(S.bioSuc>10&&S.biopsy>72&&S.cells<8&&S.zoneCut&&S.hernProg>0.55){
+      const flw=S.bioSuc/100;
+      for(let q=0;q<3;q++){ const pr=(S.t*flw*1.2+q*0.33)%1; const fx=hernX+(tipX-hernX)*pr, fy=hernY+Math.sin(S.t*4.5+q)*2.5*sc;
+        bc.beginPath(); bc.arc(fx,fy,(4-pr*2.5)*sc,0,Math.PI*2); bc.fillStyle='rgba(220,200,130,'+(0.6-pr*0.4)+')'; bc.fill(); }
+    }
+    if(S.laserFlash>0.01&&S.step===6){ const bx=hernX+Math.cos(iA)*4*sc,by=hernY; let jf=bc.createRadialGradient(bx,by,0,bx,by,14*sc*S.laserFlash); jf.addColorStop(0,'rgba(255,255,220,'+S.laserFlash+')'); jf.addColorStop(0.3,'rgba(255,60,10,'+(S.laserFlash*0.7)+')'); jf.addColorStop(1,'rgba(255,0,0,0)'); bc.beginPath(); bc.arc(bx,by,14*sc*S.laserFlash,0,Math.PI*2); bc.fillStyle=jf; bc.fill(); }
+    bc.restore();
   }
 
-  // ── DIC vignette — darken toward the rim for the Nomarski look ──
-  const _vg=bc.createRadialGradient(W*0.5,H*0.47,Math.min(W,H)*0.27,W*0.5,H*0.5,Math.max(W,H)*0.62);
-  _vg.addColorStop(0,'rgba(0,0,0,0)');
-  _vg.addColorStop(0.64,'rgba(0,0,0,0)');
-  _vg.addColorStop(1,'rgba(10,12,22,0.5)');
-  bc.fillStyle=_vg;bc.fillRect(0,0,W,H);
+  // zona laser beam
+  if(S.laserFlash>0.01&&S.step<=3){
+    const bX=embX+Math.cos(iA)*embR, bY=embY+Math.sin(iA)*embR*yk;
+    bc.beginPath(); bc.moveTo(W,bY); bc.lineTo(bX,bY); bc.strokeStyle='rgba(255,44,4,'+(S.laserFlash*0.58)+')'; bc.lineWidth=1.5*S.laserFlash; bc.stroke();
+    let lf=bc.createRadialGradient(bX,bY,0,bX,bY,16*sc*S.laserFlash); lf.addColorStop(0,'rgba(255,255,210,'+S.laserFlash+')'); lf.addColorStop(0.25,'rgba(255,60,10,'+(S.laserFlash*0.7)+')'); lf.addColorStop(1,'rgba(255,0,0,0)'); bc.beginPath(); bc.arc(bX,bY,16*sc*S.laserFlash,0,Math.PI*2); bc.fillStyle=lf; bc.fill();
+  }
+
+  // ── DIC vignette ──
+  let vg=bc.createRadialGradient(W*0.5,H*0.47,Math.min(W,H)*0.26,W*0.5,H*0.5,Math.max(W,H)*0.62);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(0.62,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(8,10,20,0.52)');
+  bc.fillStyle=vg; bc.fillRect(0,0,W,H);
+
   return{hernX,hernY};
 }
 
