@@ -36,7 +36,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .scan{position:fixed;inset:0;z-index:3;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.025) 3px,rgba(0,0,0,0.025) 4px);opacity:0.5;}
 
 /* ── TOP STATUS BAR · frosted chips ── */
-.topbar{position:fixed;top:0;left:0;right:0;z-index:8;padding:max(46px,calc(env(safe-area-inset-top,10px) + 36px)) 13px 8px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;gap:8px;}
+.topbar{position:fixed;top:0;left:0;right:0;z-index:8;padding:max(10px,calc(env(safe-area-inset-top,8px) + 6px)) 13px 8px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;gap:8px;}
 .tb-left{display:flex;flex-direction:column;gap:7px;align-items:flex-start;}
 .tb-right{display:flex;flex-direction:column;align-items:flex-end;gap:7px;}
 .tb-item{background:var(--chip);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.1);border-radius:11px;padding:5px 9px;font-size:11px;letter-spacing:.2px;color:var(--ink2);box-shadow:0 5px 16px rgba(0,0,0,0.4);white-space:nowrap;}
@@ -51,9 +51,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .help-btn:active{transform:scale(0.92);}
 
 /* ── STEP INSTRUCTION ── */
-#stepBox{position:fixed;top:max(146px,calc(env(safe-area-inset-top,0px) + 134px));left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;background:rgba(16,20,28,0.74);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);border-radius:13px;padding:8px 15px;font-size:13px;font-weight:560;letter-spacing:-.1px;color:var(--ink);text-align:center;max-width:82vw;line-height:1.3;box-shadow:0 8px 22px rgba(0,0,0,0.45);transition:border-color .3s var(--ease),color .3s var(--ease),box-shadow .3s var(--ease);}
+#stepBox{position:fixed;top:max(84px,calc(env(safe-area-inset-top,0px) + 76px));left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;background:rgba(16,20,28,0.74);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);border-radius:13px;padding:8px 15px;font-size:13px;font-weight:560;letter-spacing:-.1px;color:var(--ink);text-align:center;max-width:82vw;line-height:1.3;box-shadow:0 8px 22px rgba(0,0,0,0.45);transition:border-color .3s var(--ease),color .3s var(--ease),box-shadow .3s var(--ease);}
 #stepBox.laser{border-color:rgba(255,94,46,0.5);box-shadow:0 8px 22px rgba(0,0,0,0.45),0 0 16px rgba(255,94,46,0.2);}
+#hLaserLine{display:none!important;}
 #stepBox.warn{border-color:var(--o-dim);box-shadow:0 8px 22px rgba(0,0,0,0.45),0 0 16px rgba(245,165,36,0.18);}
+#stepBox.alert{border-color:var(--r-dim);box-shadow:0 8px 22px rgba(0,0,0,0.45),0 0 16px rgba(255,77,97,0.25);}
+#stepBox.good{border-color:var(--g-dim);box-shadow:0 8px 22px rgba(0,0,0,0.45),0 0 16px rgba(47,191,110,0.22);}
 #stepBox.pulse{animation:sbPulse 0.4s ease-out;}
 @keyframes sbPulse{0%{transform:translateX(-50%) scale(1.04);}100%{transform:translateX(-50%) scale(1);}}
 
@@ -96,7 +99,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .tm-fill.high{background:var(--r);box-shadow:0 0 12px rgba(255,77,97,0.6);}
 
 /* ── FOCUS / BLASTOCOEL READOUTS ── */
-#focBar{position:fixed;bottom:calc(var(--panelH) + 54px);left:13px;z-index:8;pointer-events:none;display:flex;flex-direction:column;gap:4px;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:8px 11px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
+#focBar{position:fixed;bottom:calc(var(--panelH) + 6px);left:13px;z-index:8;pointer-events:none;display:flex;flex-direction:column;gap:4px;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:8px 11px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
 #focBar.show{opacity:1;}
 .fb-l{font-size:8.5px;letter-spacing:1.5px;color:var(--mut);text-transform:uppercase;}
 .fb-t{width:78px;height:5px;background:rgba(8,11,16,0.6);border-radius:3px;overflow:hidden;position:relative;}
@@ -2016,11 +2019,14 @@ function caseNav(d){
 // ═══════════════════════════════════════
 // UI HELPERS
 // ═══════════════════════════════════════
+function setPhase(){const sb=$('stepBox');sb.textContent=PHASES[S.step]||'PROCEDURE COMPLETE';sb.className=PCLS[S.step]||'';}
 function notify(msg,type=''){
-  const el=$('notif');
-  el.textContent=msg;el.className='notif show'+(type?' '+type:'');
+  const sb=$('stepBox');                              // single instruction banner
+  sb.textContent=msg;
+  sb.className=({warn:'warn',w:'warn',alert:'alert',a:'alert',laser:'laser',ln:'laser',good:'good'}[type]||'');
+  sb.classList.add('pulse');setTimeout(()=>sb.classList.remove('pulse'),400);
   if(S.notifT)clearTimeout(S.notifT);
-  S.notifT=setTimeout(()=>el.classList.remove('show'),3800);
+  S.notifT=setTimeout(setPhase,4200);                 // revert to the step title
 }
 function toast(icon,title,sub){
   $('tIcon').textContent=icon;
