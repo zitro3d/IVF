@@ -1004,6 +1004,7 @@ const DICM={
 function drawScene(){
   const {W,H,sc,embX,embY,embR,bb,icmX,icmY,icmR,hernX,hernY}=EP();
   const bc=oCtx, M=DICM, iA=S.zoneCutAngle, fS=getFSharp();
+  const cutRight = Math.cos(S.zoneCutAngle) >= 0;  // herniation/cut side (true=right)
   const zT=embR*0.115, zP=DC[diff].zP, yk=(1-S.blastoC*0.08);
 
   // DIC bead-cell: diagonal gold(lit)->mid->steel-blue(shadow) shear
@@ -1129,7 +1130,7 @@ function drawScene(){
 
   // ── PULL BRIDGE ──
   if(S.pullStretch>0.05&&S.cells>=5&&S.biopsy>5){
-    const tipX2=W-S.biopsy/100*(W-hernX-7*sc), tipY2=hernY+2, npc=Math.min(S.cells,6);
+    const tipX2=(cutRight?W:0)+(hernX+(cutRight?7:-7)*sc-(cutRight?W:0))*(S.biopsy/100), tipY2=hernY+2, npc=Math.min(S.cells,6);
     for(let pc=0;pc<npc;pc++){
       const t=pc/(npc-1||1);
       const px=hernX+(tipX2-hernX)*t, py=hernY+(tipY2-hernY)*t+Math.sin(t*Math.PI)*12*sc*S.pullStretch;
@@ -1141,51 +1142,57 @@ function drawScene(){
     if(S.pullStretch>0.5){ let wg=bc.createRadialGradient(hernX,hernY,0,hernX,hernY,9*sc); wg.addColorStop(0,'rgba(255,80,20,'+(S.pullStretch*0.38)+')'); wg.addColorStop(1,'rgba(255,0,0,0)'); bc.beginPath(); bc.arc(hernX,hernY,9*sc,0,Math.PI*2); bc.fillStyle=wg; bc.fill(); }
   }
 
-  // ── HOLDING PIPETTE (left, DIC glass) ──
+  // ── HOLDING PIPETTE — grips the side OPPOSITE the cut ──
   if(S.holdSuc>0){
     const hAdv=Math.min(1,S.holdSuc/40);
-    const hTipX=embX-embR+3*sc, hX=-90+(hTipX+90)*hAdv, cyP=embY;
+    const hd=cutRight?-1:1;                         // -1 = enters from left, +1 = from right
+    const hEdge=cutRight?-2:W+2, off0=cutRight?-90:W+90;
+    const hTipX=embX+hd*(embR-3*sc), cyP=embY;
+    const hX=off0+(hTipX-off0)*hAdv;
     const hh=embR*0.6, lip=hh*0.3, bore=hh*0.4;
+    const a0=hd<0?Math.PI*0.5:-Math.PI*0.5, a1=hd<0?Math.PI*1.5:Math.PI*0.5;
     bc.save();
     bc.beginPath();
-    bc.moveTo(-2,cyP-hh); bc.lineTo(hX-lip,cyP-hh);
+    bc.moveTo(hEdge,cyP-hh); bc.lineTo(hX+hd*lip,cyP-hh);
     bc.quadraticCurveTo(hX,cyP-hh,hX,cyP-hh+lip);
-    bc.lineTo(hX,cyP-bore); bc.quadraticCurveTo(hX-bore*0.5,cyP,hX,cyP+bore);
-    bc.lineTo(hX,cyP+hh-lip); bc.quadraticCurveTo(hX,cyP+hh,hX-lip,cyP+hh);
-    bc.lineTo(-2,cyP+hh); bc.closePath();
+    bc.lineTo(hX,cyP-bore); bc.quadraticCurveTo(hX+hd*bore*0.5,cyP,hX,cyP+bore);
+    bc.lineTo(hX,cyP+hh-lip); bc.quadraticCurveTo(hX,cyP+hh,hX+hd*lip,cyP+hh);
+    bc.lineTo(hEdge,cyP+hh); bc.closePath();
     let bg=bc.createLinearGradient(0,cyP-hh,0,cyP+hh);
     bg.addColorStop(0,M.gd); bg.addColorStop(0.12,M.ge); bg.addColorStop(0.4,M.gm); bg.addColorStop(0.66,M.gm); bg.addColorStop(0.88,M.ge); bg.addColorStop(1,M.gd);
     bc.fillStyle=bg; bc.fill();
     bc.lineWidth=Math.max(0.8,embR*0.016); bc.strokeStyle=M.gd; bc.stroke();
-    bc.save(); bc.globalAlpha=0.4; bc.fillStyle=M.gb; bc.fillRect(-2,cyP-bore*0.7,hX+2,bore*1.4); bc.restore();
+    bc.save(); bc.globalAlpha=0.4; bc.fillStyle=M.gb; bc.fillRect(Math.min(hEdge,hX),cyP-bore*0.7,Math.abs(hX-hEdge),bore*1.4); bc.restore();
     bc.save(); bc.globalAlpha=0.7; bc.strokeStyle=M.ge; bc.lineWidth=Math.max(0.6,embR*0.014);
-    bc.beginPath(); bc.moveTo(0,cyP-hh*0.6); bc.lineTo(hX-lip*0.7,cyP-hh*0.6); bc.stroke(); bc.restore();
+    bc.beginPath(); bc.moveTo(hEdge,cyP-hh*0.6); bc.lineTo(hX+hd*lip*0.7,cyP-hh*0.6); bc.stroke(); bc.restore();
     bc.save();
-    bc.beginPath(); bc.ellipse(hX,cyP,bore*0.85,bore*0.95,0,Math.PI*0.5,Math.PI*1.5); bc.closePath(); bc.clip();
-    bc.fillStyle=M.dome; bc.fillRect(hX-bore,cyP-bore,bore*1.3,bore*2);
-    dicCell(hX-bore*0.25,cyP-bore*0.3,bore*0.3,bore*0.26,0.3,{});
-    dicCell(hX-bore*0.32,cyP+bore*0.32,bore*0.28,bore*0.24,-0.4,{});
+    bc.beginPath(); bc.ellipse(hX,cyP,bore*0.85,bore*0.95,0,a0,a1); bc.closePath(); bc.clip();
+    bc.fillStyle=M.dome; bc.fillRect(hX-bore,cyP-bore,bore*2,bore*2);
+    dicCell(hX+hd*bore*0.25,cyP-bore*0.3,bore*0.3,bore*0.26,0.3,{});
+    dicCell(hX+hd*bore*0.32,cyP+bore*0.32,bore*0.28,bore*0.24,-0.4,{});
     bc.restore();
-    bc.beginPath(); bc.ellipse(hX,cyP,bore*0.85,bore*0.95,0,Math.PI*0.5,Math.PI*1.5); bc.strokeStyle=M.rimGold; bc.lineWidth=Math.max(0.5,embR*0.01); bc.stroke();
+    bc.beginPath(); bc.ellipse(hX,cyP,bore*0.85,bore*0.95,0,a0,a1); bc.strokeStyle=M.rimGold; bc.lineWidth=Math.max(0.5,embR*0.01); bc.stroke();
     bc.restore();
   }
 
-  // ── BIOPSY PIPETTE (right, DIC glass) ──
+  // ── BIOPSY / SUCTION PIPETTE — enters from the cut (herniation) side ──
   if(S.biopsy>0){
-    const tipX=W-S.biopsy/100*(W-hernX-7*sc), tipY=hernY+2, hh2=embR*0.12;
+    const bs=cutRight?1:-1;                         // +1 = from right edge, -1 = from left
+    const bEdge=cutRight?W+4:-4, tipRet=cutRight?W:0;
+    const tipX=tipRet+(hernX+bs*7*sc-tipRet)*(S.biopsy/100), tipY=hernY+2, hh2=embR*0.12;
     bc.save();
-    bc.globalAlpha=0.22; bc.fillStyle=M.gm; bc.fillRect(tipX,tipY-hh2,W-tipX+4,hh2*2); bc.globalAlpha=1;
+    bc.globalAlpha=0.22; bc.fillStyle=M.gm; bc.fillRect(Math.min(tipX,bEdge),tipY-hh2,Math.abs(bEdge-tipX),hh2*2); bc.globalAlpha=1;
     bc.strokeStyle=M.ge; bc.lineWidth=Math.max(0.8,embR*0.012);
-    bc.beginPath(); bc.moveTo(W+4,tipY-hh2); bc.lineTo(tipX,tipY-hh2); bc.stroke();
-    bc.beginPath(); bc.moveTo(W+4,tipY+hh2); bc.lineTo(tipX,tipY+hh2); bc.stroke();
+    bc.beginPath(); bc.moveTo(bEdge,tipY-hh2); bc.lineTo(tipX,tipY-hh2); bc.stroke();
+    bc.beginPath(); bc.moveTo(bEdge,tipY+hh2); bc.lineTo(tipX,tipY+hh2); bc.stroke();
     bc.save(); bc.globalAlpha=0.7; bc.strokeStyle=M.gd; bc.lineWidth=Math.max(0.5,embR*0.006);
-    bc.beginPath(); bc.moveTo(W+4,tipY-hh2-embR*0.013); bc.lineTo(tipX,tipY-hh2-embR*0.013); bc.stroke();
-    bc.beginPath(); bc.moveTo(W+4,tipY+hh2+embR*0.013); bc.lineTo(tipX,tipY+hh2+embR*0.013); bc.stroke(); bc.restore();
+    bc.beginPath(); bc.moveTo(bEdge,tipY-hh2-embR*0.013); bc.lineTo(tipX,tipY-hh2-embR*0.013); bc.stroke();
+    bc.beginPath(); bc.moveTo(bEdge,tipY+hh2+embR*0.013); bc.lineTo(tipX,tipY+hh2+embR*0.013); bc.stroke(); bc.restore();
     bc.beginPath(); bc.ellipse(tipX,tipY,hh2*0.5,hh2*0.95,0,0,Math.PI*2);
     bc.save(); bc.globalAlpha=0.3; bc.fillStyle=M.gb; bc.fill(); bc.restore();
     bc.strokeStyle=M.ge; bc.lineWidth=Math.max(0.5,embR*0.009); bc.stroke();
     for(let c=0;c<Math.min(S.cells,7);c++){
-      const ccx=tipX+(c+0.6)*hh2*0.9, ccy=tipY+Math.sin(c*1.3)*hh2*0.18, ccr=(hh2*0.42)*(1-c*0.03);
+      const ccx=tipX+bs*(c+0.6)*hh2*0.9, ccy=tipY+Math.sin(c*1.3)*hh2*0.18, ccr=(hh2*0.42)*(1-c*0.03);
       dicCell(ccx,ccy,ccr,ccr*0.9,c*0.7,{nuc:c%2===0,alpha:0.92});
     }
     if(S.bioSuc>10&&S.biopsy>72&&S.cells<8&&S.zoneCut&&S.hernProg>0.55){
@@ -1200,7 +1207,7 @@ function drawScene(){
   // zona laser beam
   if(S.laserFlash>0.01&&S.step<=3){
     const bX=embX+Math.cos(iA)*embR, bY=embY+Math.sin(iA)*embR*yk;
-    bc.beginPath(); bc.moveTo(W,bY); bc.lineTo(bX,bY); bc.strokeStyle='rgba(255,44,4,'+(S.laserFlash*0.58)+')'; bc.lineWidth=1.5*S.laserFlash; bc.stroke();
+    bc.beginPath(); bc.moveTo(cutRight?W:0,bY); bc.lineTo(bX,bY); bc.strokeStyle='rgba(255,44,4,'+(S.laserFlash*0.58)+')'; bc.lineWidth=1.5*S.laserFlash; bc.stroke();
     let lf=bc.createRadialGradient(bX,bY,0,bX,bY,16*sc*S.laserFlash); lf.addColorStop(0,'rgba(255,255,210,'+S.laserFlash+')'); lf.addColorStop(0.25,'rgba(255,60,10,'+(S.laserFlash*0.7)+')'); lf.addColorStop(1,'rgba(255,0,0,0)'); bc.beginPath(); bc.arc(bX,bY,16*sc*S.laserFlash,0,Math.PI*2); bc.fillStyle=lf; bc.fill();
   }
 
