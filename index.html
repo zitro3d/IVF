@@ -4,10 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
-<meta name="theme-color" content="#0a0d14">
-<meta name="apple-mobile-web-app-title" content="IVF Biopsy Sim">
 <title>IVF Biopsy Sim</title>
 <style>
 
@@ -22,6 +19,7 @@
   --bg:#0a0e16; --panel:rgba(20,24,30,0.97);
   --ink:#eef1f5; --ink2:#aeb6c2; --ink3:#7b828f; --mut:#6b7480;
   --chip:rgba(16,20,28,0.68);
+  --panelH:250px;
   --graphite:linear-gradient(180deg,#333944,#23272f);
   --ui:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
   --mono:ui-monospace,'SF Mono','Menlo','Cascadia Code',monospace;
@@ -45,16 +43,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .tb-item.laser{border-color:rgba(255,94,46,0.4);} .tb-item.laser b{color:var(--l);}
 .tb-item.pulse{animation:tbPulse .5s ease-out;}
 @keyframes tbPulse{0%{transform:scale(1);}30%{transform:scale(1.16);filter:brightness(1.4);}100%{transform:scale(1);}}
+.help-btn{pointer-events:auto;width:34px;height:34px;border-radius:50%;background:var(--chip);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);color:var(--accent2);font-family:var(--ui);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 5px 16px rgba(0,0,0,0.4);transition:all .15s var(--ease);}
+.help-btn:hover,.help-btn:focus-visible{color:#fff;border-color:var(--accent);background:rgba(47,107,255,0.2);outline:none;}
+.help-btn:active{transform:scale(0.92);}
 
 /* ── STEP INSTRUCTION ── */
-#stepBox{position:fixed;top:max(122px,calc(env(safe-area-inset-top,0px) + 110px));left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;background:rgba(16,20,28,0.74);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);border-radius:13px;padding:9px 18px;font-size:14px;font-weight:560;letter-spacing:-.1px;color:var(--ink);text-align:center;max-width:90vw;line-height:1.3;box-shadow:0 8px 22px rgba(0,0,0,0.45);transition:border-color .3s var(--ease),color .3s var(--ease),box-shadow .3s var(--ease);}
+#stepBox{position:fixed;top:max(126px,calc(env(safe-area-inset-top,0px) + 114px));left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;background:rgba(16,20,28,0.74);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);border-radius:13px;padding:9px 18px;font-size:14px;font-weight:560;letter-spacing:-.1px;color:var(--ink);text-align:center;max-width:90vw;line-height:1.3;box-shadow:0 8px 22px rgba(0,0,0,0.45);transition:border-color .3s var(--ease),color .3s var(--ease),box-shadow .3s var(--ease);}
 #stepBox.laser{border-color:rgba(255,94,46,0.5);box-shadow:0 8px 22px rgba(0,0,0,0.45),0 0 16px rgba(255,94,46,0.2);}
 #stepBox.warn{border-color:var(--o-dim);box-shadow:0 8px 22px rgba(0,0,0,0.45),0 0 16px rgba(245,165,36,0.18);}
 #stepBox.pulse{animation:sbPulse 0.4s ease-out;}
 @keyframes sbPulse{0%{transform:translateX(-50%) scale(1.04);}100%{transform:translateX(-50%) scale(1);}}
 
 /* ── STEP TRACKER ── */
-#stepTrack{position:fixed;top:max(156px,calc(env(safe-area-inset-top,0px) + 144px));left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;display:flex;gap:5px;align-items:center;opacity:0;transition:opacity .4s var(--ease);}
+#stepTrack{position:fixed;top:max(168px,calc(env(safe-area-inset-top,0px) + 156px));left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;display:flex;gap:5px;align-items:center;opacity:0;transition:opacity .4s var(--ease);}
 #stepTrack.show{opacity:1;}
 .st-seg{width:18px;height:4px;border-radius:2px;background:rgba(255,255,255,0.12);transition:background .35s var(--ease),box-shadow .35s var(--ease),transform .35s var(--ease-snap);}
 .st-seg.done{background:var(--g);box-shadow:0 0 6px rgba(47,191,110,0.45);}
@@ -72,7 +73,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 #focRing{position:fixed;border-radius:50%;transform:translate(-50%,-50%);z-index:4;pointer-events:none;transition:border-color 0.3s,width 0.15s,height 0.15s;border:1.5px solid rgba(47,191,110,0.0);}
 
 /* ── CELL COUNT ── */
-#cellStrip{position:fixed;bottom:calc(198px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;display:flex;gap:6px;align-items:center;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:20px;padding:7px 12px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
+#cellStrip{position:fixed;bottom:calc(var(--panelH) + 12px);left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;display:flex;gap:6px;align-items:center;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:20px;padding:7px 12px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
 #cellStrip.show{opacity:1;}
 .cdot{width:11px;height:11px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.18);transition:all 0.2s;}
 .cdot.full{background:var(--g);border-color:var(--g);box-shadow:0 0 6px rgba(47,191,110,0.5);}
@@ -80,7 +81,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 @keyframes ndot{0%,100%{box-shadow:0 0 2px rgba(245,165,36,0.3);}50%{box-shadow:0 0 7px rgba(245,165,36,0.7);}}
 
 /* ── TENSION METER ── */
-#tensionMeter{position:fixed;bottom:calc(228px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;transition:opacity .35s var(--ease);width:230px;background:var(--chip);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:11px 14px;box-shadow:0 10px 26px rgba(0,0,0,0.5);}
+#tensionMeter{position:fixed;bottom:calc(var(--panelH) + 52px);left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;transition:opacity .35s var(--ease);width:230px;background:var(--chip);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:11px 14px;box-shadow:0 10px 26px rgba(0,0,0,0.5);}
 #tensionMeter.show{opacity:1;}
 .tm-l{font-size:10px;letter-spacing:1.5px;color:var(--o);text-transform:uppercase;text-align:center;}
 .tm-track{position:relative;width:100%;height:13px;background:rgba(8,11,16,0.6);border-radius:7px;overflow:hidden;}
@@ -92,18 +93,18 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .tm-fill.high{background:var(--r);box-shadow:0 0 12px rgba(255,77,97,0.6);}
 
 /* ── FOCUS / BLASTOCOEL READOUTS ── */
-#focBar{position:fixed;bottom:calc(198px + env(safe-area-inset-bottom,0px));left:13px;z-index:8;pointer-events:none;display:flex;flex-direction:column;gap:4px;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:8px 11px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
+#focBar{position:fixed;bottom:calc(var(--panelH) + 54px);left:13px;z-index:8;pointer-events:none;display:flex;flex-direction:column;gap:4px;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:8px 11px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
 #focBar.show{opacity:1;}
 .fb-l{font-size:8.5px;letter-spacing:1.5px;color:var(--mut);text-transform:uppercase;}
 .fb-t{width:78px;height:5px;background:rgba(8,11,16,0.6);border-radius:3px;overflow:hidden;position:relative;}
 .fb-z{position:absolute;top:0;bottom:0;background:rgba(47,107,255,0.22);border-radius:3px;}
 .fb-f{height:100%;border-radius:3px;transition:width 0.06s,background 0.2s;}
 .fb-s{font-size:9.5px;letter-spacing:.5px;font-family:var(--mono);font-weight:600;}
-#blastoBar{position:fixed;bottom:calc(154px + env(safe-area-inset-bottom,0px));left:13px;z-index:8;pointer-events:none;display:flex;flex-direction:column;gap:4px;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:8px 11px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
+#blastoBar{position:fixed;bottom:calc(var(--panelH) + 12px);left:13px;z-index:8;pointer-events:none;display:flex;flex-direction:column;gap:4px;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:8px 11px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
 #blastoBar.show{opacity:1;}
 
 /* ── TEMP BADGE ── */
-#tempBadge{position:fixed;bottom:calc(198px + env(safe-area-inset-bottom,0px));right:13px;z-index:8;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:8px 11px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
+#tempBadge{position:fixed;bottom:calc(252px + env(safe-area-inset-bottom,0px));right:13px;z-index:8;pointer-events:none;display:flex;flex-direction:column;align-items:flex-end;gap:3px;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:12px;padding:8px 11px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
 #tempBadge.show{opacity:1;}
 .temp-v{font-size:15px;letter-spacing:.5px;font-family:var(--mono);font-weight:600;}
 .temp-l{font-size:8.5px;letter-spacing:1.5px;color:var(--mut);text-transform:uppercase;}
@@ -146,37 +147,38 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 #notif.ln{border-color:rgba(255,94,46,0.5);color:var(--l);}
 
 /* ═══ CONTROL PANEL · RADIAL DIALS ═══ */
-.cp{position:fixed;bottom:0;left:0;right:0;z-index:8;background:linear-gradient(180deg,rgba(28,32,39,0.97),rgba(18,21,27,0.99));-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.09);border-radius:26px 26px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,0.45);padding:9px 12px;padding-bottom:max(11px,env(safe-area-inset-bottom,11px));animation:cpIn 0.45s var(--ease) both;}
+.cp{position:fixed;bottom:0;left:0;right:0;z-index:8;background:linear-gradient(180deg,rgba(28,32,39,0.97),rgba(18,21,27,0.99));-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.09);border-radius:26px 26px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,0.45);padding:14px 14px;padding-bottom:max(16px,env(safe-area-inset-bottom,16px));animation:cpIn 0.45s var(--ease) both;}
 @keyframes cpIn{from{transform:translateY(18px);}to{transform:translateY(0);}}
 
-.cp-obj{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.cp-obj{display:flex;align-items:center;gap:10px;margin-bottom:13px;}
 .cp-obj-lbl{font-size:10px;letter-spacing:1.5px;color:var(--mut);text-transform:uppercase;flex-shrink:0;}
 .seg{display:flex;flex:1;background:rgba(8,11,16,0.55);border:1px solid rgba(255,255,255,0.07);border-radius:11px;padding:3px;gap:3px;}
-.seg .s{flex:1;text-align:center;padding:5px 0;border-radius:8px;font-size:12px;color:var(--ink2);font-family:var(--mono);cursor:pointer;touch-action:manipulation;transition:all .15s var(--ease);}
+.seg .s{flex:1;text-align:center;padding:7px 0;border-radius:8px;font-size:12px;color:var(--ink2);font-family:var(--mono);cursor:pointer;touch-action:manipulation;transition:all .15s var(--ease);}
 .seg .s.sel{color:#fff;font-weight:600;background:linear-gradient(180deg,#3f6bff,#2f6bff);box-shadow:0 3px 10px rgba(47,107,255,0.5);}
 
 .dial-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;max-width:600px;margin:0 auto;}
-.dial-wrap{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1;}
+.dial-wrap{display:flex;flex-direction:column;align-items:center;gap:7px;flex:1;}
 .dial-lbl{font-size:9.5px;letter-spacing:1.5px;color:var(--ink3);text-transform:uppercase;}
 .dial-val{font-size:9px;font-family:var(--mono);color:var(--ink2);letter-spacing:.3px;min-height:11px;}
 
 /* FOCUS dial (rotary) */
-.dial{position:relative;width:78px;height:78px;border-radius:50%;background:repeating-conic-gradient(from -90deg,rgba(255,255,255,0.15) 0 1.4deg,transparent 1.4deg 15deg);display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;}
+.dial{position:relative;width:92px;height:92px;border-radius:50%;background:repeating-conic-gradient(from -90deg,rgba(255,255,255,0.15) 0 1.4deg,transparent 1.4deg 15deg);display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;}
 .dial:active{cursor:grabbing;}
-.dial-face{width:66px;height:66px;border-radius:50%;background:conic-gradient(from 130deg,#2a2f38,#3c434f,#23272f,#3c434f,#2a2f38);border:1px solid #4a515e;box-shadow:inset 0 2px 4px rgba(255,255,255,0.08),0 6px 14px rgba(0,0,0,0.5);position:relative;display:flex;align-items:center;justify-content:center;}
-.dial-cap{width:38px;height:38px;border-radius:50%;background:linear-gradient(180deg,#333944,#1d2128);border:1px solid #454c58;display:flex;align-items:center;justify-content:center;font-size:8px;letter-spacing:1px;color:var(--ink3);}
-.dial-ind{position:absolute;top:5px;left:50%;width:3px;height:14px;border-radius:2px;background:var(--g);box-shadow:0 0 8px rgba(47,191,110,0.8);transform-origin:50% 34px;transform:translateX(-50%) rotate(0deg);}
-.dial.blur .dial-ind{background:var(--r);box-shadow:0 0 8px rgba(255,77,97,0.8);}
+.dial-face{width:78px;height:78px;border-radius:50%;background:conic-gradient(from 130deg,#2a2f38,#3c434f,#23272f,#3c434f,#2a2f38);border:1px solid #4a515e;box-shadow:inset 0 2px 4px rgba(255,255,255,0.08),0 6px 14px rgba(0,0,0,0.5);position:relative;display:flex;align-items:center;justify-content:center;}
+.dial-cap{width:46px;height:46px;border-radius:50%;background:linear-gradient(180deg,#333944,#1d2128);border:1px solid #454c58;display:flex;align-items:center;justify-content:center;font-size:8px;letter-spacing:1px;color:var(--ink3);}
+.dial-ind{position:absolute;top:6px;left:50%;width:4.5px;height:17px;border-radius:3px;background:linear-gradient(180deg,#5fe39a,#2fbf6e);box-shadow:0 0 10px rgba(47,191,110,0.9),0 0 3px rgba(120,255,180,0.8);transform-origin:50% 40px;transform:translateX(-50%) rotate(0deg);}
+.dial.blur .dial-ind{background:linear-gradient(180deg,#ff7d8c,#ff4d61);box-shadow:0 0 10px rgba(255,77,97,0.9);}
+
 
 /* STAGE knurled joystick */
-.joy{width:78px;height:78px;border-radius:50%;background:repeating-conic-gradient(#3a414d 0 5deg,#23272f 5deg 10deg);border:1px solid #4a515e;box-shadow:inset 0 2px 6px rgba(0,0,0,0.5),0 6px 14px rgba(0,0,0,0.45);position:relative;touch-action:none;flex-shrink:0;}
-.joy-knob{position:absolute;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#3a414d,#23272f);border:1.5px solid var(--accent2);left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 0 12px rgba(47,107,255,0.35);}
+.joy{width:92px;height:92px;border-radius:50%;background:repeating-conic-gradient(#3a414d 0 5deg,#23272f 5deg 10deg);border:1px solid #4a515e;box-shadow:inset 0 2px 6px rgba(0,0,0,0.5),0 6px 14px rgba(0,0,0,0.45);position:relative;touch-action:none;flex-shrink:0;}
+.joy-knob{position:absolute;width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#3a414d,#23272f);border:1.5px solid var(--accent2);left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 0 12px rgba(47,107,255,0.35);}
 
 /* LASER guarded */
-.laser-btn{position:relative;width:78px;height:78px;border-radius:50%;background:repeating-conic-gradient(from -90deg,rgba(255,94,46,0.22) 0 1.4deg,transparent 1.4deg 15deg);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;transition:transform 0.08s;font-family:var(--ui);}
-.laser-btn::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:66px;height:66px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#3a2018,#1c1310);border:2px solid rgba(255,94,46,0.6);box-shadow:0 0 20px rgba(255,94,46,0.32),inset 0 1px 0 rgba(255,255,255,0.06);z-index:0;}
+.laser-btn{position:relative;width:92px;height:92px;border-radius:50%;background:repeating-conic-gradient(from -90deg,rgba(255,94,46,0.22) 0 1.4deg,transparent 1.4deg 15deg);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;transition:transform 0.08s;font-family:var(--ui);}
+.laser-btn::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#3a2018,#1c1310);border:2px solid rgba(255,94,46,0.6);box-shadow:0 0 20px rgba(255,94,46,0.32),inset 0 1px 0 rgba(255,255,255,0.06);z-index:0;}
 .laser-icon,.laser-sub{position:relative;z-index:1;}
-.laser-icon{font-size:20px;line-height:1;color:var(--l);}
+.laser-icon{font-size:23px;line-height:1;color:var(--l);}
 .laser-sub{font-size:10px;letter-spacing:1.5px;color:#ff7a52;font-weight:600;margin-top:1px;}
 .laser-btn.armed::after{animation:ds-laser 1.6s ease-in-out infinite;}
 @keyframes ds-laser{0%,100%{box-shadow:0 0 16px rgba(255,94,46,0.3),inset 0 1px 0 rgba(255,255,255,0.06);}50%{box-shadow:0 0 32px rgba(255,94,46,0.6),inset 0 1px 0 rgba(255,255,255,0.06);}}
@@ -189,29 +191,42 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .laser-btn:active{transform:scale(0.96);}
 
 /* ROCKER PEDALS + ZOOM */
-.rocker-row{display:flex;gap:9px;margin:8px auto 0;max-width:600px;align-items:stretch;}
-.pedal{flex:1;height:42px;border-radius:14px;background:var(--graphite);border:1px solid #454c58;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 5px 14px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;transition:all 0.08s;font-family:var(--ui);}
-.pedal .ped-icon{font-size:15px;line-height:1;color:var(--o);}
-.pedal .ped-sublbl{font-size:12px;letter-spacing:1px;color:var(--ink);font-weight:600;}
-.pedal{border-color:rgba(245,165,36,0.3);}
-.pedal:active,.pedal.pressing{background:linear-gradient(180deg,#3d3424,#2a2417);border-color:var(--o);box-shadow:0 0 16px rgba(245,165,36,0.3);transform:scale(0.98);}
-.bped{border-color:rgba(255,77,97,0.3);}
-.bped .ped-icon{color:var(--r);}
-.bped:active,.bped.pressing{background:linear-gradient(180deg,#3a2630,#2a1a22);border-color:var(--r);box-shadow:0 0 16px rgba(255,77,97,0.3);}
-.zoom-wheel{width:46px;border-radius:14px;background:linear-gradient(180deg,#2b3038,#1d2128);border:1px solid #454c58;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 5px 14px rgba(0,0,0,0.4);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:ns-resize;touch-action:none;user-select:none;-webkit-user-select:none;padding:5px 0;}
-.zoom-wheel .zw-grip{width:26px;height:24px;border-radius:5px;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.16) 0 1px,transparent 1px 4px);border:1px solid rgba(255,255,255,0.12);box-shadow:inset 0 2px 4px rgba(0,0,0,0.4);}
-.zoom-wheel:active .zw-grip{border-color:var(--accent2);box-shadow:inset 0 0 8px rgba(47,107,255,0.45);}
-.zoom-wheel .zw-v{font-size:8.5px;letter-spacing:.5px;color:var(--mut);font-family:var(--mono);}
+.rocker-row{display:flex;gap:9px;align-items:stretch;}
+.ctrl-lower{display:flex;gap:9px;max-width:600px;margin:14px auto 0;align-items:stretch;}
+.ctrl-left{flex:1;min-width:0;display:flex;flex-direction:column;gap:11px;}
+/* RECESSED WELLS — hold / suction */
+.well{flex:1;height:60px;border-radius:18px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;font-family:var(--ui);overflow:hidden;background:radial-gradient(ellipse 130% 100% at 50% 20%,#1b1f26,#0c0f14 80%);border:1px solid #2b3139;box-shadow:inset 0 4px 11px rgba(0,0,0,0.78),inset 0 -1px 0 rgba(255,255,255,0.04),0 1px 0 rgba(255,255,255,0.05);transition:box-shadow .12s var(--ease),border-color .12s var(--ease);}
+.well::before{content:'';position:absolute;inset:7px;border-radius:13px;border:1px solid rgba(255,255,255,0.045);pointer-events:none;}
+.well .ped-icon{font-size:19px;line-height:1;position:relative;z-index:1;}
+.well .ped-sublbl{font-size:11px;letter-spacing:1.2px;font-weight:600;position:relative;z-index:1;}
+.well.h .ped-icon{color:var(--o);} .well.h .ped-sublbl{color:#e6c98a;}
+.well.s .ped-icon{color:var(--r);} .well.s .ped-sublbl{color:#f0a6b0;}
+.well.h:active,.well.h.pressing{border-color:var(--o);box-shadow:inset 0 3px 9px rgba(0,0,0,0.55),inset 0 0 24px rgba(245,165,36,0.42),0 0 18px rgba(245,165,36,0.3);}
+.well.s:active,.well.s.pressing{border-color:var(--r);box-shadow:inset 0 3px 9px rgba(0,0,0,0.55),inset 0 0 24px rgba(255,77,97,0.42),0 0 18px rgba(255,77,97,0.3);}
+.well.pressing .ped-sublbl,.well:active .ped-sublbl{color:#fff;}
 
-/* PIPETTE stepper */
-.pip-wrap{display:flex;flex-direction:column;gap:6px;margin:9px auto 0;max-width:600px;}
-.pip-track{position:relative;height:42px;border-radius:14px;background:linear-gradient(180deg,#23272f,#171a20);border:1px solid #454c58;box-shadow:inset 0 2px 6px rgba(0,0,0,0.5);touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;}
-.pip-track:active{cursor:grabbing;}
-.pip-fill{position:absolute;left:0;top:0;bottom:0;width:22px;border-radius:13px 0 0 13px;background:linear-gradient(90deg,rgba(255,77,97,0.10),rgba(255,77,97,0.30));pointer-events:none;transition:width .05s linear;}
-.pip-knob{position:absolute;top:50%;left:22px;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 50% 38%,#3a414d,#23272f);border:1.5px solid rgba(255,77,97,0.7);box-shadow:0 0 12px rgba(255,77,97,0.35),0 4px 10px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;pointer-events:none;transition:left .05s linear;}
-.pip-knob-g{width:18px;height:18px;border-radius:50%;background:repeating-conic-gradient(rgba(255,255,255,0.14) 0 12deg,transparent 12deg 24deg);border:1px solid rgba(255,138,152,0.55);}
-.pip-scale{display:flex;justify-content:space-between;align-items:center;padding:0 4px;font-size:9px;letter-spacing:1px;color:var(--mut);font-family:var(--ui);}
-.pip-scale .pip-val{font-size:11px;font-family:var(--mono);color:var(--ink);font-weight:600;letter-spacing:.5px;}
+/* ZOOM THUMBWHEEL — vertical scroll */
+.zwheel{width:64px;border-radius:15px;position:relative;overflow:hidden;touch-action:none;cursor:ns-resize;user-select:none;-webkit-user-select:none;background:linear-gradient(180deg,#262b33,#14171c);border:1px solid #3a414d;box-shadow:inset 0 2px 5px rgba(0,0,0,0.55),inset 0 -2px 5px rgba(0,0,0,0.55),0 5px 14px rgba(0,0,0,0.4);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;}
+.zwheel-ridges{position:absolute;inset:0;background-image:repeating-linear-gradient(180deg,rgba(255,255,255,0.085) 0 1px,rgba(0,0,0,0.16) 1px,transparent 2px,transparent 7px);will-change:background-position;}
+.zwheel::before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(18,21,26,0.96),rgba(18,21,26,0) 28%,rgba(18,21,26,0) 72%,rgba(18,21,26,0.96));z-index:1;}
+.zwheel-v{position:relative;z-index:2;font-family:var(--mono);font-size:13px;color:#fff;font-weight:600;letter-spacing:-.4px;}
+.zwheel-l{position:relative;z-index:2;font-size:7px;letter-spacing:1.5px;color:var(--mut);text-transform:uppercase;margin-top:1px;}
+.zwheel-ar{position:absolute;left:0;right:0;z-index:2;text-align:center;font-size:7px;color:var(--ink3);pointer-events:none;line-height:1;}
+
+/* PIPETTE SLIDER */
+.pslider-wrap{margin:0;display:flex;flex-direction:column;gap:6px;}
+.pslider-head{display:flex;justify-content:space-between;align-items:baseline;padding:0 3px;}
+.pslider-name{font-size:10px;letter-spacing:1.5px;color:var(--mut);text-transform:uppercase;}
+.pslider-state{font-family:var(--mono);font-size:11px;color:var(--ink);font-weight:600;letter-spacing:.5px;}
+.pslider{position:relative;height:48px;border-radius:15px;overflow:hidden;touch-action:none;cursor:ew-resize;user-select:none;-webkit-user-select:none;background:linear-gradient(180deg,#14171c,#1b1f26);border:1px solid #2b3139;box-shadow:inset 0 3px 8px rgba(0,0,0,0.62);}
+.pslider-ticks{position:absolute;inset:0;background-image:repeating-linear-gradient(90deg,rgba(255,255,255,0.05) 0 1px,transparent 1px,transparent 22px);pointer-events:none;}
+.pslider-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(255,77,97,0.04),rgba(255,77,97,0.18));pointer-events:none;}
+.pslider-end{position:absolute;top:50%;transform:translateY(-50%);font-size:9px;letter-spacing:1.5px;color:var(--ink3);pointer-events:none;z-index:1;}
+.pslider-end.l{left:14px;} .pslider-end.r{right:14px;}
+.pslider-knob{position:absolute;top:5px;bottom:5px;width:48px;left:5px;border-radius:11px;background:var(--graphite);border:1px solid #4a515e;box-shadow:0 3px 9px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;gap:3px;z-index:2;}
+.pslider-knob i{width:2px;height:15px;border-radius:1px;background:rgba(255,255,255,0.22);}
+.pslider-knob.adv{border-color:var(--r-dim);box-shadow:0 3px 9px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.12),0 0 14px rgba(255,77,97,0.32);}
+
 
 /* ═══ OVERLAYS ═══ */
 .ov{position:fixed;inset:0;z-index:12;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:11px;padding:24px 22px;padding-top:max(28px,env(safe-area-inset-top,28px));padding-bottom:max(24px,env(safe-area-inset-bottom,24px));overflow-y:auto;-webkit-overflow-scrolling:touch;}
@@ -261,14 +276,20 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .m-case.locked{border-color:var(--o-dim);}
 
 /* CONTROL HINT */
-#controlHint{position:fixed;inset:0;z-index:11;background:rgba(8,11,18,0.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;}
-.ch-title{font-size:15px;letter-spacing:2px;color:var(--ink);font-weight:660;}
-.ch-kbd{font-size:10.5px;letter-spacing:.3px;color:var(--ink3);text-align:center;line-height:1.7;max-width:330px;}
-.ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;width:100%;max-width:330px;}
-.ch-item{background:linear-gradient(180deg,rgba(34,39,48,0.7),rgba(22,26,33,0.8));border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:5px;}
-.ch-icon{font-size:24px;line-height:1;color:var(--accent2);}
-.ch-lbl{font-size:11px;letter-spacing:.2px;color:var(--ink2);text-align:center;line-height:1.45;}
-.ch-ok{padding:14px 36px;background:linear-gradient(180deg,#3f6bff,#2f6bff);border:none;color:#fff;font-family:var(--ui);font-size:13px;font-weight:600;letter-spacing:2px;cursor:pointer;border-radius:14px;touch-action:manipulation;box-shadow:0 8px 22px rgba(47,107,255,0.45);}
+#controlHint{position:fixed;inset:0;z-index:11;background:rgba(6,9,14,0.78);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.ch-card{width:100%;max-width:368px;background:linear-gradient(180deg,rgba(36,41,50,0.97),rgba(20,24,30,0.98));border:1px solid rgba(255,255,255,0.1);border-radius:24px;padding:22px;display:flex;flex-direction:column;gap:16px;box-shadow:0 30px 70px rgba(0,0,0,0.65),inset 0 1px 0 rgba(255,255,255,0.06);}
+.ch-top{display:flex;flex-direction:column;gap:4px;}
+.ch-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:2.5px;color:var(--accent2);}
+.ch-title{font-size:20px;letter-spacing:-.3px;color:var(--ink);font-weight:660;}
+.ch-rows{display:flex;flex-direction:column;gap:10px;}
+.ch-row{display:flex;align-items:center;gap:12px;}
+.ch-tile{width:38px;height:38px;flex-shrink:0;border-radius:11px;background:radial-gradient(ellipse 120% 100% at 50% 22%,#1b1f26,#0d1015);border:1px solid #2b3139;box-shadow:inset 0 2px 6px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.ch-lbl{font-size:12.5px;line-height:1.4;color:var(--ink2);letter-spacing:.1px;}
+.ch-lbl b{color:var(--ink);font-weight:600;}
+.ch-kbd{font-size:10px;letter-spacing:.2px;color:var(--ink3);line-height:1.6;border-top:1px solid rgba(255,255,255,0.07);padding-top:13px;}
+.ch-ok{align-self:stretch;padding:14px 0;background:linear-gradient(180deg,#3f6bff,#2f6bff);border:none;color:#fff;font-family:var(--ui);font-size:13px;font-weight:600;letter-spacing:2px;cursor:pointer;border-radius:14px;touch-action:manipulation;box-shadow:0 8px 22px rgba(47,107,255,0.45);}
+.m-guide{width:100%;max-width:340px;padding:13px 0;background:transparent;border:1px solid rgba(255,255,255,0.16);color:var(--ink2);font-family:var(--ui);font-size:12px;font-weight:600;letter-spacing:1.5px;cursor:pointer;border-radius:14px;transition:all .18s var(--ease);touch-action:manipulation;display:flex;align-items:center;justify-content:center;gap:8px;}
+.m-guide:hover,.m-guide:focus-visible{border-color:var(--accent);color:var(--ink);background:rgba(47,107,255,0.1);outline:none;}
 
 /* DEBRIEF */
 #dOv{background:#080b12 radial-gradient(ellipse 92% 56% at 50% 22%,rgba(20,52,38,0.42),rgba(8,11,18,0.99) 74%);display:none;}
@@ -375,7 +396,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .tb-drop:disabled{opacity:0.4;cursor:not-allowed;}
 
 /* REFERENCE */
-#refBtn{pointer-events:auto;display:none;align-items:center;justify-content:center;gap:4px;background:var(--chip);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.1);color:var(--ink2);padding:6px 11px;border-radius:11px;font-family:var(--ui);font-size:10px;letter-spacing:1.5px;font-weight:600;cursor:pointer;touch-action:manipulation;box-shadow:0 5px 16px rgba(0,0,0,0.4);transition:color .2s var(--ease),box-shadow .2s var(--ease),background .2s var(--ease);}
+#refBtn{position:fixed;left:0;top:45%;z-index:9;display:none;align-items:center;justify-content:center;background:rgba(20,24,30,0.9);border:1px solid rgba(255,255,255,0.1);border-left:none;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:var(--ink2);padding:13px 8px;border-radius:0 12px 12px 0;font-family:var(--ui);font-size:9px;letter-spacing:2px;font-weight:600;writing-mode:vertical-rl;cursor:pointer;touch-action:manipulation;box-shadow:2px 0 14px rgba(0,0,0,0.4);transition:color .2s var(--ease),box-shadow .2s var(--ease),background .2s var(--ease);}
 #refBtn:hover,#refBtn:focus-visible{color:var(--accent2);background:rgba(47,107,255,0.12);outline:none;}
 #refBtn.hl{animation:refHl 1.4s var(--ease) 2;}
 @keyframes refHl{0%,100%{box-shadow:2px 0 14px rgba(0,0,0,0.4);color:var(--ink2);}50%{box-shadow:0 0 18px rgba(47,107,255,0.5);color:var(--accent2);}}
@@ -445,8 +466,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
   </div>
   </div>
   <div class="tb-right">
-    <div id="refBtn" onclick="openRef()">❔ GUIDE</div>
-    <div class="tb-item alert"><b id="hTemp" style="color:var(--r)">35.8°C</b></div>
+    <div class="help-btn" id="helpBtn" onclick="showHelp()" role="button" tabindex="0" aria-label="How to operate the controls">?</div>
+    <div class="tb-item alert" id="hTempLine"><b id="hTemp" style="color:var(--r)">35.8°C</b></div>
+    <div class="tb-item laser" id="hLaserLine" style="display:none"><b id="hLaser">LASER</b></div>
     <div class="tb-item" id="hErrLine" style="display:none">ERRORS <b id="hErr" style="color:var(--o)">0</b></div>
   </div>
 </div>
@@ -461,7 +483,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
   <div class="st-seg"></div>
 </div>
 
-<!-- TECHNIQUE REFERENCE — panel (button now lives in the top status bar) -->
+<!-- TECHNIQUE REFERENCE — panel (opened from the start menu) -->
 <div id="refPanel">
   <div class="rp-head">
     <div class="rp-title">TECHNIQUE REFERENCE</div>
@@ -511,7 +533,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
 <!-- CELL COUNT -->
 <div id="cellStrip"></div>
-
 <!-- BRIDGE TENSION METER (Expert two-handed junction cut) -->
 <div id="tensionMeter" aria-hidden="true">
   <div class="tm-l" id="tmLbl">BRIDGE TENSION · keep in band</div>
@@ -521,8 +542,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
     <div class="tm-charge" id="tmCharge"></div>
   </div>
 </div>
-
-<!-- (stage temperature now shown in the top status bar) -->
 
 <!-- ACHIEVEMENT TOAST -->
 <div id="toast">
@@ -563,39 +582,50 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
         <div class="laser-sub" id="lSub">LASER</div>
       </div>
       <span class="dial-lbl">Laser</span>
-      <span class="dial-val" id="lInfo"></span>
     </div>
   </div>
-  <div class="rocker-row">
-    <div class="pedal" id="hPed"><span class="ped-icon">⊙</span><span class="ped-sublbl" id="hPedLbl">HOLD</span></div>
-    <div class="pedal bped" id="sPed"><span class="ped-icon">◎</span><span class="ped-sublbl" id="sPedLbl">SUCTION</span></div>
-    <div class="zoom-wheel" id="zoomWheel" title="Drag up / down to change magnification">
-      <div class="zw-grip"></div>
-      <div class="zw-v" id="oDisp">200×</div>
+  <div class="ctrl-lower">
+    <div class="ctrl-left">
+      <div class="rocker-row">
+        <div class="well h" id="hPed"><span class="ped-icon">⊙</span><span class="ped-sublbl" id="hPedLbl">HOLD</span></div>
+        <div class="well s" id="sPed"><span class="ped-icon">◎</span><span class="ped-sublbl" id="sPedLbl">SUCTION</span></div>
+      </div>
+      <div class="pslider-wrap">
+        <div class="pslider-head"><span class="pslider-name">Pipette</span><span class="pslider-state" id="pipV">RET</span></div>
+        <div class="pslider" id="pslider">
+          <div class="pslider-ticks"></div>
+          <div class="pslider-fill" id="pslideFill"></div>
+          <span class="pslider-end l">◀ RET</span>
+          <span class="pslider-end r">ADV ▶</span>
+          <div class="pslider-knob" id="pslideKnob"><i></i><i></i><i></i></div>
+        </div>
+      </div>
     </div>
-  </div>
-  <div class="pip-wrap">
-    <div class="pip-track" id="pipTrack">
-      <div class="pip-fill" id="pipFill"></div>
-      <div class="pip-knob" id="pipKnob"><span class="pip-knob-g"></span></div>
+    <div class="zwheel" id="zwheel" role="button" tabindex="0" aria-label="Zoom — scroll up to magnify">
+      <div class="zwheel-ridges" id="zwheelRidges"></div>
+      <div class="zwheel-ar" style="top:6px">▲</div>
+      <div class="zwheel-v" id="oDisp">200×</div>
+      <div class="zwheel-l">zoom</div>
+      <div class="zwheel-ar" style="bottom:6px">▼</div>
     </div>
-    <div class="pip-scale"><span>◀ RETRACT</span><b class="pip-val" id="pipV">RET</b><span>ADVANCE ▶</span></div>
   </div>
 </div>
 
 <!-- CONTROLS HINT (first session) -->
 <div id="controlHint">
-  <div class="ch-title">HOW TO USE</div>
-  <div class="ch-grid">
-    <div class="ch-item"><div class="ch-icon">↕</div><div class="ch-lbl">Drag FOCUS knob to sharpen embryo</div></div>
-    <div class="ch-item"><div class="ch-icon">⊕</div><div class="ch-lbl">STAGE joystick moves embryo</div></div>
-    <div class="ch-item"><div class="ch-icon">⊙</div><div class="ch-lbl">HOLD pedal grips embryo to rotate ICM</div></div>
-    <div class="ch-item"><div class="ch-icon">◎</div><div class="ch-lbl">SUCTION pedal aspirates cells</div></div>
-    <div class="ch-item"><div class="ch-icon">⇄</div><div class="ch-lbl">Slide the PIPETTE bar — left retract · right advance</div></div>
-    <div class="ch-item"><div class="ch-icon">✦</div><div class="ch-lbl">LASER fires at draggable target on zona</div></div>
+  <div class="ch-card">
+    <div class="ch-top"><span class="ch-eyebrow">REFERENCE</span><div class="ch-title">Quick controls</div></div>
+    <div class="ch-rows">
+      <div class="ch-row"><div class="ch-tile" style="color:var(--g)">◓</div><div class="ch-lbl">Drag the <b>Focus</b> dial to sharpen the zona</div></div>
+      <div class="ch-row"><div class="ch-tile" style="color:var(--accent2)">⊕</div><div class="ch-lbl">Drag the <b>Stage</b> knob to move the embryo</div></div>
+      <div class="ch-row"><div class="ch-tile" style="color:var(--o)">⊙</div><div class="ch-lbl">Hold <b>Grip</b> + Stage to rotate the ICM to 9 o’clock</div></div>
+      <div class="ch-row"><div class="ch-tile" style="color:var(--r)">◎</div><div class="ch-lbl">Hold <b>Suction</b> to aspirate the cells</div></div>
+      <div class="ch-row"><div class="ch-tile" style="color:var(--ink2)">⇅</div><div class="ch-lbl">Scroll the <b>Zoom</b> wheel · slide <b>Pipette</b> to advance</div></div>
+      <div class="ch-row"><div class="ch-tile" style="color:var(--l)">✦</div><div class="ch-lbl">Drag the target onto the zona, then tap <b>Laser</b></div></div>
+    </div>
+    <div class="ch-kbd">⌨ Arrows stage · Q/E focus · H hold · J suction · Space laser · , . pipette · +/− zoom</div>
+    <button class="ch-ok" onclick="dismissHint()">GOT IT</button>
   </div>
-  <div class="ch-kbd">⌨ Keyboard: arrows move · Q/E focus · H hold · J suction · Space laser · , . pipette · G guide</div>
-  <button class="ch-ok" onclick="dismissHint()">GOT IT — BEGIN</button>
 </div>
 
 <!-- MENU OVERLAY -->
@@ -649,6 +679,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
   </div>
 
   <button class="go" onclick="beginSession()">START SESSION</button>
+  <button class="m-guide" onclick="openGuide()">☰ Technique guide</button>
   <div class="m-hint">Holding pipette: Ø130μm · Biopsy pipette: Ø30μm<br>Laser: 1480nm diode · Stage: 37°C heated</div>
 </div>
 
@@ -871,6 +902,22 @@ function fresh(){
 }
 let S=fresh();
 
+const __noop={};
+let vOff=70;
+function computeLayout(){
+  const cp=document.getElementById('cp');
+  if(!cp||getComputedStyle(cp).display==='none')return;
+  const ph=cp.offsetHeight;
+  if(ph>0){
+    document.documentElement.style.setProperty('--panelH', ph+'px');
+    const H=window.innerHeight, topB=130;
+    let v=(ph-topB)/2;
+    v=Math.max(0,Math.min(v,H*0.22));
+    vOff=v;
+  }
+}
+window.addEventListener('resize',computeLayout);
+
 // ═══════════════════════════════════════
 // CANVAS
 // ═══════════════════════════════════════
@@ -885,10 +932,11 @@ resize();
 // ═══════════════════════════════════════
 // EMBRYO PARAMS
 // ═══════════════════════════════════════
+function vfit(){return Math.max(1,Math.min(3,Math.min(scope.width,scope.height)/440));}
 function EP(){
-  const W=scope.width,H=scope.height,sc=OBJS[oIdx].m/200;
+  const W=scope.width,H=scope.height,sc=OBJS[oIdx].m/200*vfit();
   const ox=S.stX*1.02+S.dX*0.16, oy=S.stY*1.02+S.dY*0.16;
-  const embX=W/2-48*sc+ox, embY=H*0.455+oy;
+  const embX=W/2-48*sc+ox, embY=H/2-vOff+oy;
   const bb=Math.sin(S.t*0.05*Math.PI*2)*0.011*(1-S.blastoC);
   const embR=(80+bb*80)*sc*(S.caseR||1);   // case morphology scales embryo size
   const icmX=embX+Math.cos(S.icmAngle)*embR*0.44;
@@ -1405,6 +1453,7 @@ function loop(){
       S.ltY=ep0.embY+Math.sin(S.ltAngle)*ep0.embR;
       ltEl.style.left=S.ltX+'px'; ltEl.style.top=S.ltY+'px';
       ltEl.style.display='block'; S.ltOnZona=true; ltEl.classList.add('on');
+      $('hLaserLine').style.display='block';
     }
     // Keep target locked to zona as embryo drifts (when not dragging)
     if(S.ltOnZona&&!S.ltDrag&&!S.zoneCut&&S.step>=2&&S.step<=3){
@@ -1508,7 +1557,9 @@ function updatePhysics(){
         const lb=$('lBtn');
         lb.className='laser-btn armed';
         $('lSub').textContent='CUT';
-        $('lInfo').textContent='fire on bridge';
+        __noop.textContent='fire on bridge';
+        $('hLaserLine').style.display='block';
+        $('hLaser').textContent='JUNCTION MODE';
         ltEl.style.display='block';
         positionLTAtBridge();
         addScore(150);
@@ -1516,7 +1567,7 @@ function updatePhysics(){
         // EXPERT: engage the two-handed tension-band cut
         if(diff==='h'){
           showTensionMeter();
-          $('lSub').textContent='AUTO';$('lInfo').textContent='hold tension';
+          $('lSub').textContent='AUTO';__noop.textContent='hold tension';
           notify('EXPERT CUT — hold GRIP for counter-traction + modulate SUCTION to keep TENSION in the green band','ln');
         }
       }
@@ -1611,7 +1662,7 @@ function moveLT(x,y){S.ltX=x;S.ltY=y;ltEl.style.left=x+'px';ltEl.style.top=y+'px
 function checkLT(x,y,embX,embY,embR){
   const dx=x-embX,dy=y-embY,dist=Math.sqrt(dx*dx+dy*dy);
   S.ltAngle=Math.atan2(dy,dx);
-  S.ltOnZona=Math.abs(dist-embR)<14*OBJS[oIdx].m/200;
+  S.ltOnZona=Math.abs(dist-embR)<14*OBJS[oIdx].m/200*vfit();
   const ep=EP();const icmDx=x-ep.icmX,icmDy=y-ep.icmY;
   S.ltNearICM=Math.sqrt(icmDx*icmDx+icmDy*icmDy)<ep.icmR*1.5;
   ltEl.classList.toggle('on',S.ltOnZona);
@@ -1708,14 +1759,16 @@ function fireLaser(){
       $('lSub').textContent='LASER';
       if(rem>0){
         notify(`✦ PULSE ${S.zonePulses}/${dc.zP} — tap again for next pulse`,'ln');
-        $('lInfo').textContent=`${rem} more`;
+        __noop.textContent=`${rem} more`;
         lBtn.classList.add('armed');
       } else {
         S.zoneCut=true;
         lBtn.className='laser-btn done';$('lSub').textContent='DONE';
-        $('lInfo').textContent='zona open';
+        __noop.textContent='zona open';
         setTimeout(()=>{
           nextStep();notify('✓ ZONA OPEN — wait for TE cells to herniate','good');
+          $('hLaser').textContent='ZONA OPEN ✓';
+          $('hLaserLine').style.display='none';
           addScore(220);toast('⚡','ZONA BREACHED','Clean cut — excellent');
         },400);
       }
@@ -1820,56 +1873,27 @@ function pipStep(dir){
     setTimeout(showTubing,2000);   // tubing/witnessing → then the scorecard
   }
 }
-// ── PIPETTE SLIDER — drag horizontally: left = retract, right = advance ──
-// Maps finger position to S.biopsy (0 retracted .. 100 advanced) and drives the
-// existing pipStep() so every biopsy side-effect stays intact.
-const PIP_PAD=22;
-function pipSliderTo(clientX){
-  const tr=$('pipTrack'); if(!tr)return;
-  const r=tr.getBoundingClientRect();
-  let fr=(clientX-r.left-PIP_PAD)/(r.width-2*PIP_PAD);
-  fr=Math.max(0,Math.min(1,fr));
-  const target=fr*100; let guard=0;
-  while(Math.abs(S.biopsy-target)>=3.5 && guard++<60) pipStep(S.biopsy<target?+1:-1);
+// Hold to advance/retract continuously
+// Pipette touch handlers — advance = pipIn (▶), retract = pipOut (◀)
+function bindPipBtn(id,dir){
+  const el=$(id);
+  if(!el)return;
+  el.addEventListener('touchstart',e=>{e.preventDefault();popBtn(el);haptic(8);pipCont(dir);},{passive:false});
+  el.addEventListener('touchend',e=>{e.preventDefault();clearInterval(pipInt);},{passive:false});
+  el.addEventListener('touchcancel',e=>{e.preventDefault();clearInterval(pipInt);},{passive:false});
+  el.addEventListener('mousedown',e=>{popBtn(el);pipCont(dir);});
+  el.addEventListener('mouseup',()=>clearInterval(pipInt));
+  el.addEventListener('mouseleave',()=>clearInterval(pipInt));
 }
-function bindPipSlider(){
-  const tr=$('pipTrack'); if(!tr)return; let drag=false;
-  tr.addEventListener('touchstart',e=>{e.preventDefault();drag=true;haptic(8);pipSliderTo(e.touches[0].clientX);},{passive:false});
-  tr.addEventListener('touchmove',e=>{if(drag){e.preventDefault();pipSliderTo(e.touches[0].clientX);}},{passive:false});
-  tr.addEventListener('touchend',()=>{drag=false;});
-  tr.addEventListener('touchcancel',()=>{drag=false;});
-  tr.addEventListener('mousedown',e=>{drag=true;pipSliderTo(e.clientX);});
-  window.addEventListener('mousemove',e=>{if(drag)pipSliderTo(e.clientX);});
-  window.addEventListener('mouseup',()=>{drag=false;});
-}
-bindPipSlider();
-
-// ── ZOOM THUMBWHEEL — drag vertically: up = zoom in, down = zoom out ──
-function bindZoomWheel(){
-  const el=$('zoomWheel'); if(!el)return; let sy=null,sIdx=0; const STEP=20;
-  const move=y=>{
-    if(sy===null)return;
-    const target=Math.max(0,Math.min(OBJS.length-1, sIdx+Math.round((sy-y)/STEP)));
-    while(oIdx<target)chObj(+1);
-    while(oIdx>target)chObj(-1);
-  };
-  el.addEventListener('touchstart',e=>{e.preventDefault();sy=e.touches[0].clientY;sIdx=oIdx;haptic(8);},{passive:false});
-  el.addEventListener('touchmove',e=>{e.preventDefault();move(e.touches[0].clientY);},{passive:false});
-  el.addEventListener('touchend',()=>{sy=null;});
-  el.addEventListener('touchcancel',()=>{sy=null;});
-  el.addEventListener('mousedown',e=>{sy=e.clientY;sIdx=oIdx;});
-  window.addEventListener('mousemove',e=>{if(sy!==null)move(e.clientY);});
-  window.addEventListener('mouseup',()=>{sy=null;});
-}
-bindZoomWheel();
+bindPipBtn('pipIn',-1);   // ▶ = advance = decrease biopsy value (tip moves right)
+bindPipBtn('pipOut',+1);  // ◀ = retract = increase biopsy value (tip moves left)
+function pipCont(dir){clearInterval(pipInt);pipStep(dir);pipInt=setInterval(()=>pipStep(dir),100);}
 
 function updatePipHUD(){
   const v=S.biopsy;
+  updatePipKnob();
   const ls=['RET','ADV','ADV','POS','TARGET'];
   $('pipV').textContent=ls[Math.min(4,Math.floor(v/22))];
-  const kn=$('pipKnob'),pf=$('pipFill');
-  if(kn)kn.style.left=`calc(${v}% + ${22 - v/100*44}px)`;
-  if(pf)pf.style.width=`calc(${v}% + ${22 - v/100*44}px)`;
   const ret=$('ret');
   if(S.step>4)ret.style.display='block';
   if(v>=80)ret.classList.add('lock');else ret.classList.remove('lock');
@@ -1899,6 +1923,8 @@ function updateFocusHUD(fS){
 function updateTempHUD(){
   const t=S.temp;
   const c=t>=37?'var(--g)':t>36.2?'var(--o)':'var(--r)';
+  const line=$('hTempLine');
+  if(line)line.className='tb-item'+(t>=37?'':' alert');
   $('hTemp').textContent=`${t.toFixed(1)}°C${t>=37?' ✓':' ↑'}`;
   $('hTemp').style.color=c;
 }
@@ -1949,8 +1975,7 @@ function nextStep(){
   // Keep the reference panel current; nudge the GUIDE tab so trainees
   // learn it follows along with each new step.
   if($('refPanel').classList.contains('show'))renderRef();
-  const rb=$('refBtn');
-  rb.classList.remove('hl');void rb.offsetWidth;rb.classList.add('hl');
+  const rb=$('refBtn');if(rb){rb.classList.remove('hl');void rb.offsetWidth;rb.classList.add('hl');}
 }
 // Paint the 7-segment tracker: completed steps green, current amber.
 function updateStepTrack(){
@@ -2265,7 +2290,7 @@ function showDebrief(){
     haptic([0,30,40,30,40,60]);
   }
 
-  $('refBtn').style.display='none';
+  
   closeRef();
   $('mOv').style.display='none';
   $('dOv').style.display='flex';
@@ -2644,26 +2669,15 @@ function setDiff(d){
 }
 
 let firstSession=true;
-// Request fullscreen — must be called from a user gesture (e.g. the START
-// tap). Works on Android Chrome & desktop; iOS Safari ignores it in-browser
-// (there, "Add to Home Screen" gives the chrome-less experience instead).
-function goFullscreen(){
-  try{
-    const el=document.documentElement;
-    const fn=el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen||el.msRequestFullscreen;
-    if(fn&&!document.fullscreenElement&&!document.webkitFullscreenElement)fn.call(el);
-  }catch(e){}
-}
 function beginSession(){
   if(!caseUnlocked(caseIdx)){            // selected a locked case — refuse
     notify('🔒 Clear the previous case to unlock this one','warn');haptic([0,40,30,40]);return;
   }
-  goFullscreen();                        // hide browser chrome where supported
   $('mOv').style.display='none';
-  if(firstSession){firstSession=false;$('controlHint').style.display='flex';}
-  else startSim();
+  firstSession=false;startSim();
 }
-function dismissHint(){$('controlHint').style.display='none';startSim();}
+function dismissHint(){$('controlHint').style.display='none';}
+function showHelp(){$('controlHint').style.display='flex';}
 
 function startSim(){
   $('mOv').style.display='none';
@@ -2691,8 +2705,10 @@ function startSim(){
 
   // Show UI
   $('cp').style.display='block';
+  requestAnimationFrame(computeLayout);computeLayout();
   $('focBar').classList.add('show');
   $('blastoBar').classList.add('show');
+  __noopEl.classList.add('show');
 
   // Reset controls
   $('fk').value=38;
@@ -2700,9 +2716,11 @@ function startSim(){
   $('sPedLbl').textContent='SUCTION';
   $('lBtn').className='laser-btn armed';
   $('lSub').textContent='LASER';
-  $('lInfo').textContent='';
+  __noop.textContent='position first';
+  $('hLaserLine').style.display='block';
+  $('hLaser').textContent='LASER ARMED';
+  $('hLaserLine').style.color='';
   $('pipV').textContent='RET';
-  updatePipHUD();
   $('ret').style.display='none';
   $('ret').classList.remove('lock');
   ltEl.style.display='none';ltEl.classList.remove('on','icm');
@@ -2718,7 +2736,7 @@ function startSim(){
   $('hErrLine').style.display='none';
   $('hErr').textContent='0';
   // Technique reference tab
-  $('refBtn').style.display='flex';
+  
   closeRef();
 
   // Refresh objective display
@@ -2742,8 +2760,9 @@ function toMenu(){
   $('cp').style.display='none';
   $('focBar').classList.remove('show');
   $('blastoBar').classList.remove('show');
+  __noopEl.classList.remove('show');
   $('stepTrack').classList.remove('show');
-  $('refBtn').style.display='none';
+  
   hideTensionMeter();
   closeRef();
   $('mOv').style.display='flex';
@@ -2806,7 +2825,7 @@ window.addEventListener('keydown',e=>{
     case 'h':if(!KEYS.has('h')){KEYS.add('h');startHold();}break;
     case 'j':if(!KEYS.has('j')){KEYS.add('j');startSuc();}break;
     case ' ':case 'f':e.preventDefault();fireLaser();break;
-    case '.':case '>':pipStep(+1);break;   // advance pipette toward embryo
+    case '.':case '>':pipStep(+1);break;   // advance pipette toward cells
     case ',':case '<':pipStep(-1);break;   // retract pipette
     case '+':case '=':chObj(+1);break;
     case '-':case '_':chObj(-1);break;
@@ -2840,8 +2859,10 @@ function initA11y(){
   set('hPed','Hold pedal — grip embryo, hold H key','button');
   set('sPed','Suction pedal — aspirate cells, hold J key','button');
   set('lBtn','Fire laser, Space key','button');
-  set('pipTrack','Pipette position slider — drag to advance or retract','application',true);
-  set('zoomWheel','Magnification wheel — drag up to zoom in','application',true);
+  set('pipIn','Advance pipette, period key','button',true);
+  set('pipOut','Retract pipette, comma key','button',true);
+  set('objIn','Zoom in','button',true);
+  set('objOut','Zoom out','button',true);
   set('refBtn','Open technique guide, G key','button',true);
   set('lt','Laser target — drag onto zona');
   set('dE','Guided difficulty','button',true);
@@ -2876,6 +2897,62 @@ loop();
   dial.addEventListener('touchend',up);dial.addEventListener('touchcancel',up);
   dial.addEventListener('mousedown',function(e){e.preventDefault();dn(e.clientY);});
   document.addEventListener('mousemove',function(e){if(on)mv(e.clientY);});
+  document.addEventListener('mouseup',up);
+})();
+
+
+window.__noopEl={classList:{add(){},remove(){},toggle(){}},style:{},textContent:'',innerHTML:''};
+function openGuide(){ renderRef(); document.getElementById('refPanel').classList.add('show'); }
+
+// ── ZOOM THUMBWHEEL — drag vertical to change objective ──
+(function(){
+  const w=document.getElementById('zwheel'); if(!w)return;
+  const ridges=document.getElementById('zwheelRidges');
+  let on=false,y0=0,acc=0,roff=0;
+  function dn(y){on=true;y0=y;}
+  function mv(y){ if(!on)return; const dy=y0-y; y0=y; acc+=dy; roff=(roff-dy)%7; if(ridges)ridges.style.backgroundPositionY=roff+'px';
+    while(acc>=36){acc-=36; chObj(1);} while(acc<=-36){acc+=36; chObj(-1);} }
+  function up(){on=false;acc=0;}
+  w.addEventListener('touchstart',e=>{e.preventDefault();dn(e.touches[0].clientY);},{passive:false});
+  w.addEventListener('touchmove',e=>{e.preventDefault();mv(e.touches[0].clientY);},{passive:false});
+  w.addEventListener('touchend',up); w.addEventListener('touchcancel',up);
+  w.addEventListener('mousedown',e=>{e.preventDefault();dn(e.clientY);});
+  document.addEventListener('mousemove',e=>{if(on)mv(e.clientY);});
+  document.addEventListener('mouseup',up);
+  w.addEventListener('wheel',e=>{e.preventDefault(); chObj(e.deltaY<0?1:-1);},{passive:false});
+  w.addEventListener('keydown',e=>{ if(e.key==='ArrowUp'||e.key==='+'){e.preventDefault();chObj(1);} if(e.key==='ArrowDown'||e.key==='-'){e.preventDefault();chObj(-1);} });
+})();
+
+// ── PIPETTE SLIDER — drag to advance/retract (drives directional pipStep) ──
+function updatePipKnob(){
+  const tr=document.getElementById('pslider'),k=document.getElementById('pslideKnob'),f=document.getElementById('pslideFill');
+  if(!tr||!k)return;
+  const w=tr.clientWidth, kw=k.offsetWidth||48;
+  const frac=Math.max(0,Math.min(100,S.biopsy))/100;        // 0 = retracted(left), 1 = advanced(right)
+  k.style.left=(5+frac*(w-kw-10))+'px';
+  if(f)f.style.width=(frac*100)+'%';
+  k.classList.toggle('adv',S.biopsy>60);
+}
+(function(){
+  const tr=document.getElementById('pslider'); if(!tr)return;
+  let on=false;
+  function applyPointer(x){
+    if(!S.live)return;
+    const r=tr.getBoundingClientRect();
+    let fr=(x-r.left)/r.width; fr=Math.max(0,Math.min(1,fr));
+    const want=fr*100;                                       // left=retract(low), right=advance(high)
+    let g=0;
+    while(g++<8){ const d=want-S.biopsy; if(Math.abs(d)<3.5)break; pipStep(d>0?1:-1); }
+    updatePipKnob();
+  }
+  function dn(x){on=true;applyPointer(x);}
+  function mv(x){if(on)applyPointer(x);}
+  function up(){on=false;}
+  tr.addEventListener('touchstart',e=>{e.preventDefault();dn(e.touches[0].clientX);},{passive:false});
+  tr.addEventListener('touchmove',e=>{e.preventDefault();mv(e.touches[0].clientX);},{passive:false});
+  tr.addEventListener('touchend',up); tr.addEventListener('touchcancel',up);
+  tr.addEventListener('mousedown',e=>{e.preventDefault();dn(e.clientX);});
+  document.addEventListener('mousemove',e=>{if(on)mv(e.clientX);});
   document.addEventListener('mouseup',up);
 })();
 
