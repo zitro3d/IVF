@@ -73,7 +73,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 @keyframes ringPing{0%{transform:translate(-50%,-50%) scale(0.6);opacity:0.7;}100%{transform:translate(-50%,-50%) scale(2.4);opacity:0;}}
 .tap-ring{position:fixed;width:46px;height:46px;border-radius:50%;border:2px solid currentColor;pointer-events:none;z-index:9;animation:ringPing 0.5s var(--ease) forwards;}
 
-#focRing{position:fixed;border-radius:50%;transform:translate(-50%,-50%);z-index:4;pointer-events:none;transition:border-color 0.3s,box-shadow 0.3s,width 0.15s,height 0.15s;border:2.5px solid rgba(47,191,110,0.0);}
+#focRing{position:fixed;border-radius:50%;transform:translate(-50%,-50%);z-index:4;pointer-events:none;transition:border-color 0.3s,width 0.15s,height 0.15s;border:1.5px solid rgba(47,191,110,0.0);}
 
 /* ── CELL COUNT ── */
 #cellStrip{position:fixed;bottom:calc(var(--panelH) + 12px);left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;display:flex;gap:6px;align-items:center;background:var(--chip);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.09);border-radius:20px;padding:7px 12px;opacity:0;transition:opacity 0.4s;box-shadow:0 6px 18px rgba(0,0,0,0.4);}
@@ -167,10 +167,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 /* FOCUS dial (rotary) */
 .dial{position:relative;width:80px;height:80px;border-radius:50%;background:repeating-conic-gradient(from -90deg,rgba(255,255,255,0.15) 0 1.4deg,transparent 1.4deg 15deg);display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;}
 .dial:active{cursor:grabbing;}
-.dial-face{width:68px;height:68px;border-radius:50%;background:conic-gradient(from 130deg,#2a2f38,#3c434f,#23272f,#3c434f,#2a2f38);border:1px solid #4a515e;box-shadow:inset 0 2px 4px rgba(255,255,255,0.08),0 6px 14px rgba(0,0,0,0.5);position:relative;display:flex;align-items:center;justify-content:center;}
+.dial-face{width:68px;height:68px;border-radius:50%;background:conic-gradient(from 130deg,#2a2f38,#3c434f,#23272f,#3c434f,#2a2f38);border:1px solid #4a515e;box-shadow:inset 0 2px 4px rgba(255,255,255,0.08),0 6px 14px rgba(0,0,0,0.5),0 0 14px rgba(47,224,134,0.55);position:relative;display:flex;align-items:center;justify-content:center;transition:box-shadow .3s var(--ease);}
 .dial-cap{width:40px;height:40px;border-radius:50%;background:linear-gradient(180deg,#333944,#1d2128);border:1px solid #454c58;display:flex;align-items:center;justify-content:center;font-size:8px;letter-spacing:1px;color:var(--ink3);}
-.dial-ind{position:absolute;top:6px;left:50%;width:4.5px;height:17px;border-radius:3px;background:linear-gradient(180deg,#5fe39a,#2fbf6e);box-shadow:0 0 10px rgba(47,191,110,0.9),0 0 3px rgba(120,255,180,0.8);transform-origin:50% 34px;transform:translateX(-50%) rotate(0deg);}
-.dial.blur .dial-ind{background:linear-gradient(180deg,#ff7d8c,#ff4d61);box-shadow:0 0 10px rgba(255,77,97,0.9);}
+.dial-ind{position:absolute;top:5px;left:50%;width:6px;height:20px;border-radius:3px;background:linear-gradient(180deg,#8effc0,#22d870);box-shadow:0 0 16px rgba(47,224,134,1),0 0 6px rgba(170,255,205,0.95);transform-origin:50% 35px;transform:translateX(-50%) rotate(0deg);}
+.dial.blur .dial-ind{background:linear-gradient(180deg,#ffa3ad,#ff2f47);box-shadow:0 0 18px rgba(255,77,97,1),0 0 6px rgba(255,170,180,0.9);}
+.dial.blur .dial-face{box-shadow:inset 0 2px 4px rgba(255,255,255,0.08),0 6px 14px rgba(0,0,0,0.5),0 0 18px rgba(255,77,97,0.7);}
 
 
 /* STAGE knurled joystick */
@@ -1355,9 +1356,9 @@ function updateFocusRing(fS){
   const sz=embR*2.1;
   fr.style.left=embX+'px';fr.style.top=embY+'px';
   fr.style.width=sz+'px';fr.style.height=sz+'px';
-  if(fS>0.82){fr.style.borderColor='rgba(54,224,134,0.95)';fr.style.boxShadow='0 0 20px rgba(54,224,134,0.5)';}
-  else if(fS>0.45){fr.style.borderColor='rgba(245,180,60,0.9)';fr.style.boxShadow='0 0 16px rgba(245,180,60,0.4)';}
-  else{fr.style.borderColor='rgba(255,77,97,0.92)';fr.style.boxShadow='0 0 16px rgba(255,77,97,0.45)';}
+  if(fS>0.82){fr.style.borderColor='rgba(47,191,110,0.35)';}
+  else if(fS>0.45){fr.style.borderColor='rgba(245,165,36,0.25)';}
+  else{fr.style.borderColor='rgba(47,191,110,0.0)';}
 }
 
 // ═══════════════════════════════════════
