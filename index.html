@@ -167,11 +167,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 /* FOCUS dial (rotary) */
 .dial{position:relative;width:80px;height:80px;border-radius:50%;background:repeating-conic-gradient(from -90deg,rgba(255,255,255,0.15) 0 1.4deg,transparent 1.4deg 15deg);display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;}
 .dial:active{cursor:grabbing;}
-.dial-face{width:68px;height:68px;border-radius:50%;background:conic-gradient(from 130deg,#2a2f38,#3c434f,#23272f,#3c434f,#2a2f38);border:1px solid #4a515e;box-shadow:inset 0 2px 4px rgba(255,255,255,0.08),0 6px 14px rgba(0,0,0,0.5),0 0 14px rgba(47,224,134,0.55);position:relative;display:flex;align-items:center;justify-content:center;transition:box-shadow .3s var(--ease);}
+.dial-face{width:68px;height:68px;border-radius:50%;background:conic-gradient(from 130deg,#2a2f38,#3c434f,#23272f,#3c434f,#2a2f38);border:1px solid #4a515e;box-shadow:inset 0 2px 4px rgba(255,255,255,0.08),0 6px 14px rgba(0,0,0,0.5),0 0 12px rgba(245,165,36,0.4);position:relative;display:flex;align-items:center;justify-content:center;transition:box-shadow .3s var(--ease);}
 .dial-cap{width:40px;height:40px;border-radius:50%;background:linear-gradient(180deg,#333944,#1d2128);border:1px solid #454c58;display:flex;align-items:center;justify-content:center;font-size:8px;letter-spacing:1px;color:var(--ink3);}
-.dial-ind{position:absolute;top:5px;left:50%;width:6px;height:20px;border-radius:3px;background:linear-gradient(180deg,#8effc0,#22d870);box-shadow:0 0 16px rgba(47,224,134,1),0 0 6px rgba(170,255,205,0.95);transform-origin:50% 35px;transform:translateX(-50%) rotate(0deg);}
+.dial-ind{position:absolute;top:5px;left:50%;width:6px;height:20px;border-radius:3px;background:linear-gradient(180deg,#ffe0a3,#f5a524);box-shadow:0 0 12px rgba(245,165,36,0.95),0 0 5px rgba(255,212,150,0.85);transform-origin:50% 35px;transform:translateX(-50%) rotate(0deg);transition:background .25s,box-shadow .25s;}
 .dial.blur .dial-ind{background:linear-gradient(180deg,#ffa3ad,#ff2f47);box-shadow:0 0 18px rgba(255,77,97,1),0 0 6px rgba(255,170,180,0.9);}
 .dial.blur .dial-face{box-shadow:inset 0 2px 4px rgba(255,255,255,0.08),0 6px 14px rgba(0,0,0,0.5),0 0 18px rgba(255,77,97,0.7);}
+.dial.sharp .dial-ind{background:linear-gradient(180deg,#8effc0,#22d870);box-shadow:0 0 16px rgba(47,224,134,1),0 0 6px rgba(170,255,205,0.95);}
+.dial.sharp .dial-face{box-shadow:inset 0 2px 4px rgba(255,255,255,0.08),0 6px 14px rgba(0,0,0,0.5),0 0 16px rgba(47,224,134,0.6);}
 
 
 /* STAGE knurled joystick */
@@ -1681,10 +1683,12 @@ function chObj(dir){
   const bMicrons=Math.round(100*(200/obj.m));
   // Only shift focus and notify if actually changed during a live session
   if(oIdx===prev||!S.live)return;
-  // Changing objective shifts focus (different working distance per lens)
-  const shift=16+Math.random()*24;
+  // Each objective sits on a different focal plane — knock focus well off the
+  // NEW lens's optimum so it never lands sharp by luck; operator must re-focus.
+  const off=24+Math.random()*12;            // 24..36 focus-units away from optimal
   const d2=Math.random()>0.5?1:-1;
-  const nF=Math.max(3,Math.min(97,S.focus+d2*shift));
+  let nF=Math.max(3,Math.min(97,OBJS[oIdx].fOpt*100+d2*off));
+  if(Math.abs(nF/100-OBJS[oIdx].fOpt)*2.7<0.45) nF=Math.max(3,Math.min(97,OBJS[oIdx].fOpt*100-d2*off));
   $('fk').value=nF;
   S.focus=nF;
   S.focusLocked=false; // must re-focus on new lens
@@ -1768,7 +1772,7 @@ function updateFocusHUD(fS){
   $('fbS').style.color=c;
   $('fv').textContent=`${((S.focus/100-OBJS[oIdx].fOpt)*10).toFixed(1)}μm`;
   var _fi=$('focusDialInd');if(_fi)_fi.style.transform='translateX(-50%) rotate('+((S.focus/100)*270-135)+'deg)';
-  var _fd=$('focusDial');if(_fd)_fd.classList.toggle('blur',fS<=0.42);
+  var _fd=$('focusDial');if(_fd){_fd.classList.toggle('blur',fS<=0.42);_fd.classList.toggle('sharp',fS>0.82);}
   $('focBar').classList.toggle('show',S.step===1);
   const opt=OBJS[oIdx].fOpt,zW=10;
   $('fbZ').style.left=`${Math.max(0,opt*100-zW/2)}%`;
