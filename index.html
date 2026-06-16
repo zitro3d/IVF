@@ -984,6 +984,29 @@ function applyCA(k){
   ctx.setTransform(1,0,0,1,0,0);
   ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
 }
+function drawFieldStop(){
+  const W=scope.width,H=scope.height;
+  const cx=W*0.5, cy=H*0.5 - vOff*RS;                 // fixed eyepiece centre (embryo rest)
+  const Rr=Math.min(W*0.49, H*0.40);                  // field-stop radius (fills the width)
+  // 1) eyepiece surround — black everything outside the field circle
+  ctx.save();
+  ctx.beginPath();ctx.rect(0,0,W,H);ctx.arc(cx,cy,Rr,0,Math.PI*2);
+  ctx.fillStyle='#04060a';ctx.fill('evenodd');
+  ctx.restore();
+  // 2) soft rim vignette fading into the black
+  ctx.save();
+  ctx.beginPath();ctx.arc(cx,cy,Rr,0,Math.PI*2);ctx.clip();
+  const vg=ctx.createRadialGradient(cx,cy,Rr*0.72,cx,cy,Rr);
+  vg.addColorStop(0,'rgba(4,6,10,0)');vg.addColorStop(1,'rgba(4,6,10,0.82)');
+  ctx.fillStyle=vg;ctx.fillRect(cx-Rr,cy-Rr,Rr*2,Rr*2);
+  ctx.restore();
+  // 3) chromatic-aberration ring at the field-stop edge (blue outer / warm inner fringe)
+  ctx.save();ctx.globalCompositeOperation='screen';
+  ctx.beginPath();ctx.arc(cx,cy,Rr+2.5*RS,0,Math.PI*2);ctx.strokeStyle='rgba(70,140,255,0.5)';ctx.lineWidth=4*RS;ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,Rr-3*RS,0,Math.PI*2);ctx.strokeStyle='rgba(255,140,70,0.26)';ctx.lineWidth=2.5*RS;ctx.stroke();
+  ctx.restore();
+  ctx.beginPath();ctx.arc(cx,cy,Rr,0,Math.PI*2);ctx.strokeStyle='rgba(150,195,255,0.75)';ctx.lineWidth=1.4*RS;ctx.stroke();
+}
 function applyBarrel(src){
   const w=scope.width,h=scope.height,cx=w*0.5,cy=h*0.5,Rm=Math.hypot(cx,cy);
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.clearRect(0,0,w,h);
@@ -1323,6 +1346,7 @@ function loop(){
     // Blur from focus
     const fS=getFSharp();
     applyBlur((1-fS)*8.5+(dc.fNoise*(Math.sin(S.t*0.78)*0.4+Math.sin(S.t*2.1)*0.25)*0.28));
+    drawFieldStop();
 
     updateFocusHUD(fS);
 
