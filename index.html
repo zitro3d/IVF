@@ -946,7 +946,11 @@ const scope=$('scope');
 const ctx=scope.getContext('2d');
 const off=$('off');
 const oCtx=off.getContext('2d');
-function resize(){scope.width=off.width=window.innerWidth;scope.height=off.height=window.innerHeight;}
+// chromatic aberration scratch buffers (RGB channel separation)
+const caA=document.createElement('canvas'),caB=document.createElement('canvas');
+const caAc=caA.getContext('2d'),caBc=caB.getContext('2d');
+const CA_AMT=0.007;   // per-channel scale divergence — fringing grows toward the rim
+function resize(){scope.width=off.width=window.innerWidth;scope.height=off.height=window.innerHeight;caA.width=caB.width=window.innerWidth;caA.height=caB.height=window.innerHeight;}
 window.addEventListener('resize',resize);
 resize();
 
@@ -972,8 +976,26 @@ function getFSharp(){return Math.max(0,1-Math.abs(S.focus/100-OBJS[oIdx].fOpt)*2
 // ═══════════════════════════════════════
 // BLUR
 // ═══════════════════════════════════════
+function applyCA(k){
+  const amt=CA_AMT*(k||1);
+  if(amt<=0.0002)return;
+  const w=scope.width,h=scope.height,cx=w*0.5,cy=h*0.5;
+  caAc.globalCompositeOperation='copy';caAc.drawImage(scope,0,0);          // snapshot frame
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.clearRect(0,0,w,h);
+  ctx.globalCompositeOperation='lighter';                                   // additive recombine
+  const tints=['#ff0000','#00ff00','#0000ff'],scales=[1+amt,1,1-amt];
+  for(let i=0;i<3;i++){
+    caBc.globalCompositeOperation='copy';caBc.drawImage(caA,0,0);
+    caBc.globalCompositeOperation='multiply';caBc.fillStyle=tints[i];caBc.fillRect(0,0,w,h); // isolate channel
+    const sc=scales[i];
+    ctx.setTransform(sc,0,0,sc,cx*(1-sc),cy*(1-sc));
+    ctx.drawImage(caB,0,0);
+  }
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
+}
 function applyBlur(ba){
-  if(ba<0.45){ctx.globalAlpha=1;ctx.clearRect(0,0,scope.width,scope.height);ctx.drawImage(off,0,0);return;}
+  if(ba<0.45){ctx.globalAlpha=1;ctx.clearRect(0,0,scope.width,scope.height);ctx.drawImage(off,0,0);applyCA(1);return;}
   const p=Math.min(16,Math.round(ba*2)),sp=ba*3.2,al=1/(p*1.5);
   ctx.clearRect(0,0,scope.width,scope.height);
   ctx.globalAlpha=Math.max(0.05,1-ba*0.08);ctx.drawImage(off,0,0);
@@ -985,6 +1007,7 @@ function applyBlur(ba){
   }
   if(ba>6){ctx.globalAlpha=Math.min(0.28,(ba-6)*0.04);ctx.fillStyle='#7c869a';ctx.fillRect(0,0,scope.width,scope.height);}
   ctx.globalAlpha=1;
+  if(ba<3)applyCA(1-ba/3);
 }
 
 // ═══════════════════════════════════════
