@@ -949,18 +949,19 @@ const oCtx=off.getContext('2d');
 // chromatic aberration scratch buffers (RGB channel separation)
 const caA=document.createElement('canvas'),caB=document.createElement('canvas');
 const caAc=caA.getContext('2d'),caBc=caB.getContext('2d');
+const RS=Math.min(window.devicePixelRatio||1,2);   // supersample to native pixels for a sharper image (capped at 2x for perf)
 const CA_AMT=0.007;   // per-channel scale divergence — fringing grows toward the rim
 const BARREL=0.05, BANDS=9;   // barrel bulge magnitude + smoothness (more bands = smoother)
-function resize(){scope.width=off.width=window.innerWidth;scope.height=off.height=window.innerHeight;caA.width=caB.width=window.innerWidth;caA.height=caB.height=window.innerHeight;}
+function resize(){const LW=window.innerWidth,LH=window.innerHeight;scope.width=off.width=caA.width=caB.width=Math.round(LW*RS);scope.height=off.height=caA.height=caB.height=Math.round(LH*RS);}
 window.addEventListener('resize',resize);
 resize();
 
 // ═══════════════════════════════════════
 // EMBRYO PARAMS
 // ═══════════════════════════════════════
-function vfit(){return Math.max(1,Math.min(3,Math.min(scope.width,scope.height)/440));}
+function vfit(){return Math.max(1,Math.min(3,Math.min(scope.width,scope.height)/RS/440));}
 function EP(){
-  const W=scope.width,H=scope.height,sc=OBJS[oIdx].m/200*vfit();
+  const W=scope.width/RS,H=scope.height/RS,sc=OBJS[oIdx].m/200*vfit();
   const ox=S.stX*1.02+S.dX*0.16, oy=S.stY*1.02+S.dY*0.16;
   const embX=W/2-48*sc+ox, embY=H/2-vOff+oy;
   const bb=Math.sin(S.t*0.05*Math.PI*2)*0.011*(1-S.blastoC);
@@ -1326,7 +1327,9 @@ function loop(){
     }
 
     // Draw
+    oCtx.setTransform(1,0,0,1,0,0);
     oCtx.clearRect(0,0,scope.width,scope.height);
+    oCtx.setTransform(RS,0,0,RS,0,0);              // scene draws in logical px, rasterised at native res
     const{hernX,hernY}=drawScene();
 
     // Blur from focus
@@ -1362,7 +1365,7 @@ function loop(){
 
     // Biopsy reticle
     const ret=$('ret');
-    ret.style.left=(hernX/scope.width*100)+'%';ret.style.top=(hernY/scope.height*100)+'%';
+    ret.style.left=(hernX/(scope.width/RS)*100)+'%';ret.style.top=(hernY/(scope.height/RS)*100)+'%';
     if(S.biopsy>=80)ret.classList.add('lock');else ret.classList.remove('lock');
 
     // ICM HUD
