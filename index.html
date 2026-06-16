@@ -39,6 +39,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .topbar{position:fixed;top:0;left:0;right:0;z-index:8;padding:max(10px,calc(env(safe-area-inset-top,8px) + 6px)) 13px 8px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;gap:8px;}
 .tb-left{display:flex;flex-direction:column;gap:7px;align-items:flex-start;}
 .tb-right{display:flex;flex-direction:column;align-items:flex-end;gap:7px;}
+.tb-btnrow{display:flex;flex-direction:row;gap:7px;}
 .tb-item{background:var(--chip);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.1);border-radius:11px;padding:5px 9px;font-size:11px;letter-spacing:.2px;color:var(--ink2);box-shadow:0 5px 16px rgba(0,0,0,0.4);white-space:nowrap;}
 .tb-item b{color:var(--ink);font-family:var(--mono);font-weight:600;}
 .tb-item.warn{border-color:var(--o-dim);} .tb-item.warn b{color:var(--o);}
@@ -486,8 +487,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
   </div>
   </div>
   <div class="tb-right">
-    <div class="help-btn off" id="eyeBtn" onclick="toggleEye()" role="button" tabindex="0" aria-label="Toggle eyepiece (microscope) view">◉</div>
-    <div class="help-btn" id="helpBtn" onclick="showHelp()" role="button" tabindex="0" aria-label="How to operate the controls">?</div>
+    <div class="tb-btnrow">
+      <div class="help-btn off" id="eyeBtn" onclick="toggleEye()" role="button" tabindex="0" aria-label="Toggle eyepiece (microscope) view">◉</div>
+      <div class="help-btn" id="helpBtn" onclick="showHelp()" role="button" tabindex="0" aria-label="How to operate the controls">?</div>
+    </div>
     <div class="tb-item alert" id="hTempLine"><b id="hTemp" style="color:var(--r)">35.8°C</b></div>
     <div class="tb-item laser" id="hLaserLine" style="display:none"><b id="hLaser">LASER</b></div>
     <div class="tb-item" id="hErrLine" style="display:none">ERRORS <b id="hErr" style="color:var(--o)">0</b></div>
