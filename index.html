@@ -950,6 +950,7 @@ const oCtx=off.getContext('2d');
 const caA=document.createElement('canvas'),caB=document.createElement('canvas');
 const caAc=caA.getContext('2d'),caBc=caB.getContext('2d');
 const CA_AMT=0.007;   // per-channel scale divergence — fringing grows toward the rim
+const BARREL=0.05, BANDS=9;   // barrel bulge magnitude + smoothness (more bands = smoother)
 function resize(){scope.width=off.width=window.innerWidth;scope.height=off.height=window.innerHeight;caA.width=caB.width=window.innerWidth;caA.height=caB.height=window.innerHeight;}
 window.addEventListener('resize',resize);
 resize();
@@ -994,8 +995,20 @@ function applyCA(k){
   ctx.setTransform(1,0,0,1,0,0);
   ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;
 }
+function applyBarrel(src){
+  const w=scope.width,h=scope.height,cx=w*0.5,cy=h*0.5,Rm=Math.hypot(cx,cy);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.clearRect(0,0,w,h);
+  for(let i=BANDS;i>=1;i--){                      // outer (least magnified) first
+    const rr=Rm*(i/BANDS), t=1-(i-0.5)/BANDS, m=1+BARREL*t*t;
+    ctx.save();
+    ctx.beginPath();ctx.arc(cx,cy,rr,0,Math.PI*2);ctx.clip();
+    ctx.setTransform(m,0,0,m,cx*(1-m),cy*(1-m));
+    ctx.drawImage(src,0,0);
+    ctx.restore();
+  }
+}
 function applyBlur(ba){
-  if(ba<0.45){ctx.globalAlpha=1;ctx.clearRect(0,0,scope.width,scope.height);ctx.drawImage(off,0,0);applyCA(1);return;}
+  if(ba<0.45){applyBarrel(off);applyCA(1);return;}
   const p=Math.min(16,Math.round(ba*2)),sp=ba*3.2,al=1/(p*1.5);
   ctx.clearRect(0,0,scope.width,scope.height);
   ctx.globalAlpha=Math.max(0.05,1-ba*0.08);ctx.drawImage(off,0,0);
