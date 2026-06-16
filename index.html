@@ -49,6 +49,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .help-btn{pointer-events:auto;width:34px;height:34px;border-radius:50%;background:var(--chip);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);color:var(--accent2);font-family:var(--ui);font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 5px 16px rgba(0,0,0,0.4);transition:all .15s var(--ease);}
 .help-btn:hover,.help-btn:focus-visible{color:#fff;border-color:var(--accent);background:rgba(47,107,255,0.2);outline:none;}
 .help-btn:active{transform:scale(0.92);}
+.help-btn.off{opacity:0.45;}
 
 /* ── STEP INSTRUCTION ── */
 #stepBox{position:fixed;top:max(84px,calc(env(safe-area-inset-top,0px) + 76px));left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;background:rgba(16,20,28,0.74);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);border-radius:13px;padding:8px 15px;font-size:13px;font-weight:560;letter-spacing:-.1px;color:var(--ink);text-align:center;max-width:82vw;line-height:1.3;box-shadow:0 8px 22px rgba(0,0,0,0.45);transition:border-color .3s var(--ease),color .3s var(--ease),box-shadow .3s var(--ease);}
@@ -485,7 +486,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
   </div>
   </div>
   <div class="tb-right">
-    <div class="help-btn" id="viewBtn" onclick="toggleView()" role="button" tabindex="0" aria-label="Toggle DIC / Brightfield microscope mode" style="font-size:10px;font-weight:700;letter-spacing:0.5px;">DIC</div>
+    <div class="help-btn" id="eyeBtn" onclick="toggleEye()" role="button" tabindex="0" aria-label="Toggle eyepiece field-stop view">◉</div>
+    <div class="help-btn" id="fsBtn" onclick="toggleFullscreen()" role="button" tabindex="0" aria-label="Toggle fullscreen">⛶</div>
     <div class="help-btn" id="helpBtn" onclick="showHelp()" role="button" tabindex="0" aria-label="How to operate the controls">?</div>
     <div class="tb-item alert" id="hTempLine"><b id="hTemp" style="color:var(--r)">35.8°C</b></div>
     <div class="tb-item laser" id="hLaserLine" style="display:none"><b id="hLaser">LASER</b></div>
@@ -836,7 +838,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 // ═══════════════════════════════════════
 const _el={};
 function $(id){return _el[id]||(_el[id]=document.getElementById(id));}
-function toggleView(){viewBF=!viewBF;const b=$('viewBtn');if(b)b.textContent=viewBF?'BF':'DIC';if(typeof haptic==='function')haptic(12);}
+function toggleEye(){eyeOn=!eyeOn;const b=$('eyeBtn');if(b)b.classList.toggle('off',!eyeOn);if(typeof haptic==='function')haptic(12);}
+function toggleFullscreen(){try{const d=document,el=d.documentElement;if(!d.fullscreenElement&&!d.webkitFullscreenElement){(el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el);}else{(d.exitFullscreen||d.webkitExitFullscreen||function(){}).call(d);}}catch(e){}}
 
 // ═══════════════════════════════════════
 // OBJECTIVES
@@ -858,7 +861,7 @@ const DC={
   h:{dM:1.2,tempR:0.45,fNoise:0.7,icmP:true, zP:5,jP:3,hints:false,sucPen:80},
 };
 let diff='m';
-let viewBF=false;   // false = DIC (full frame), true = Brightfield eyepiece
+let eyeOn=true;   // eyepiece field-stop silhouette over the DIC view
 
 // ═══════════════════════════════════════
 // STATE
@@ -1056,22 +1059,10 @@ const DICM={
   cav:'rgba(196,202,216,0.32)',
   gd:'#3e4658', ge:'#eef1f8', gm:'#9aa3b5', gb:'#2b3340', dome:'rgba(130,140,160,0.5)'
 };
-// Brightfield (Koehler) palette — warm, evenly-lit, brown zona rim
-const BFM={
-  bg:'#ddd9cc', illum:'rgba(255,253,245,0.5)', illumMid:'rgba(222,216,198,0.16)',
-  shadow:'rgba(120,105,80,0.10)', debris:'rgba(120,100,70,0.7)',
-  cellMid:'#d3ccba', stroke:'rgba(120,88,48,0.42)', gold:'#f6f2e8', blue:'#bcb299',
-  nuc:'rgba(120,88,48,0.26)', nucleolus:'rgba(155,112,55,0.55)',
-  zonaFill:'rgba(205,185,145,0.14)', zonaInner:'rgba(228,214,184,0.4)',
-  rimGold:'rgba(168,120,58,0.82)', rimBlue:'rgba(150,110,68,0.62)',
-  fringeWarm:'rgba(165,118,55,0.55)', fringeCool:'rgba(125,92,55,0.42)',
-  cav:'rgba(246,243,233,0.34)',
-  gd:'#9c968b', ge:'#fcfaf3', gm:'#cec9bc', gb:'#bcb6a8', dome:'rgba(205,193,168,0.5)'
-};
 
 function drawScene(){
   const {W,H,sc,embX,embY,embR,bb,icmX,icmY,icmR,hernX,hernY}=EP();
-  const bc=oCtx, M=(viewBF?BFM:DICM), iA=S.zoneCutAngle, fS=getFSharp();
+  const bc=oCtx, M=DICM, iA=S.zoneCutAngle, fS=getFSharp();
   const zT=embR*0.115, zP=DC[diff].zP, yk=(1-S.blastoC*0.08);
 
   // DIC bead-cell: diagonal gold(lit)->mid->steel-blue(shadow) shear
@@ -1272,8 +1263,8 @@ function drawScene(){
     let lf=bc.createRadialGradient(bX,bY,0,bX,bY,16*sc*S.laserFlash); lf.addColorStop(0,'rgba(255,255,210,'+S.laserFlash+')'); lf.addColorStop(0.25,'rgba(255,60,10,'+(S.laserFlash*0.7)+')'); lf.addColorStop(1,'rgba(255,0,0,0)'); bc.beginPath(); bc.arc(bX,bY,16*sc*S.laserFlash,0,Math.PI*2); bc.fillStyle=lf; bc.fill();
   }
 
-  // ── DIC vignette (DIC mode only; brightfield uses the eyepiece field stop) ──
-  if(!viewBF){
+  // ── DIC vignette (only when the eyepiece silhouette is off) ──
+  if(!eyeOn){
   let vg=bc.createRadialGradient(W*0.5,H*0.47,Math.min(W,H)*0.26,W*0.5,H*0.5,Math.max(W,H)*0.62);
   vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(0.62,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(8,10,20,0.52)');
   bc.fillStyle=vg; bc.fillRect(0,0,W,H);
@@ -1363,7 +1354,7 @@ function loop(){
     // Blur from focus
     const fS=getFSharp();
     applyBlur((1-fS)*8.5+(dc.fNoise*(Math.sin(S.t*0.78)*0.4+Math.sin(S.t*2.1)*0.25)*0.28));
-    if(viewBF)drawFieldStop();
+    if(eyeOn)drawFieldStop();
 
     updateFocusHUD(fS);
 
