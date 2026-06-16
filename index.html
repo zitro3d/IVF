@@ -1453,6 +1453,14 @@ function updatePhysics(){
     }
   }
 
+  // EXPERT cell-count discipline — holding suction once the pipette is full over-aspirates and lyses
+  if(diff==='h'&&S.cells>=8&&S.bioSuc>50&&S.biopsy>=82&&S.zoneCut&&S.step===5){
+    if(S.t%1.4<0.02){
+      addErr('Over-aspiration — pipette full at 8 cells, cells lysing',7);
+      S.blastoC=Math.min(1,S.blastoC+0.05);   // excess suction collapses the blastocoel
+      flash('red');haptic(12);
+    }
+  }
   // Over-suction
   if(S.bioSuc>dc.sucPen&&S.biopsy>70){
     if(S.t%2.5<0.02)addErr('Excessive suction pressure — risk of cell lysis',8);
@@ -1615,7 +1623,7 @@ function fireLaser(){
   // Step 3 — zona drilling
   // Accept step 2 as well (ICM just positioned, user may tap laser immediately)
   if(S.step===3||S.step===2){
-    if(!S.ltOnZona){notify('⚠ Drag the red ✦ target onto the zona wall first','warn');return;}
+    if(!S.ltOnZona){notify('⚠ Drag the red ✦ target onto the zona wall first','warn');if(diff==='h'){addErr('Laser fired off-target — thermal exposure to the embryo',6);S.wastedShots=(S.wastedShots||0)+1;flash('red');haptic(15);}return;}
     if(S.ltNearICM&&dc.icmP){notify('⚠ LASER TOO CLOSE TO ICM — move target to opposite side','alert');addErr('Laser near ICM',20);flash('red');return;}
     if(!S.icmOk&&dc.icmP){notify('⚠ Position ICM to 9 o\'clock first (use HOLD + joystick)','warn');return;}
     // Temperature: warn but don't block — just penalise (realistic: lab may fire before full equilibration)
