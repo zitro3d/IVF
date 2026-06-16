@@ -891,7 +891,6 @@ function fresh(){
     // Scoring
     startT:null, elapsed:0,
     score:0, errors:[], errSet:new Set(), penalties:0,
-    slowmo:0, bloom:0,
     // Membrane
     mPh:Array.from({length:24},()=>Math.random()*Math.PI*2),
     mAmp:Array.from({length:24},()=>0.003+Math.random()*0.005),
@@ -1252,9 +1251,7 @@ function loop(){
       ctx.fillStyle='#06090a';ctx.fillRect(0,0,scope.width,scope.height);
       return;
     }
-    S.t+=0.016*(S.slowmo>0?0.4:1);
-    if(S.slowmo>0)S.slowmo--;
-    if(S.bloom>0)S.bloom=Math.max(0,S.bloom-0.022);
+    S.t+=0.016;
     const dc=DC[diff];
     const obj=OBJS[oIdx];
 
@@ -1325,14 +1322,6 @@ function loop(){
     // Blur from focus
     const fS=getFSharp();
     applyBlur((1-fS)*8.5+(dc.fNoise*(Math.sin(S.t*0.78)*0.4+Math.sin(S.t*2.1)*0.25)*0.28));
-    if(S.bloom>0){
-      const _ep=EP(),_bx=_ep.hernX*RS,_by=_ep.hernY*RS,_br=_ep.embR*1.7*RS,_a=S.bloom;
-      const _g=ctx.createRadialGradient(_bx,_by,0,_bx,_by,_br);
-      _g.addColorStop(0,'rgba(255,250,228,'+(_a*0.7)+')');
-      _g.addColorStop(0.35,'rgba(255,212,140,'+(_a*0.38)+')');
-      _g.addColorStop(1,'rgba(255,200,120,0)');
-      ctx.save();ctx.globalCompositeOperation='lighter';ctx.fillStyle=_g;ctx.fillRect(0,0,scope.width,scope.height);ctx.restore();
-    }
 
     updateFocusHUD(fS);
 
@@ -1522,7 +1511,7 @@ function autoJunctionCut(){
           hideTensionMeter();
           setTimeout(()=>{
             nextStep();notify('✓ JUNCTIONS CUT — retract pipette ◀ to secure specimen','good');
-            S.slowmo=46;S.bloom=1;addScore(260);toast('🧬','SPECIMEN EXCISED','Clean two-handed cut');
+            addScore(260);toast('🧬','SPECIMEN EXCISED','Clean two-handed cut');
           },380);
         } else {
           notify(`✦ JUNCTION PULSE ${S.juncPulses}/${dc.jP} — hold tension for the next`,'ln');
@@ -1692,7 +1681,7 @@ function fireLaser(){
         lBtn.className='laser-btn done';$('lSub').textContent='DONE';
         setTimeout(()=>{
           nextStep();notify('✓ JUNCTIONS CUT — retract pipette ◀ to secure specimen','good');
-          S.slowmo=46;S.bloom=1;addScore(260);toast('🧬','SPECIMEN EXCISED','Junction cut complete');
+          addScore(260);toast('🧬','SPECIMEN EXCISED','Junction cut complete');
         },380);
       } else {
         lBtn.classList.add('armed');
