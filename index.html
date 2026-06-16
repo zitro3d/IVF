@@ -2207,7 +2207,7 @@ function randId(){
 function showTubing(){
   // reset phase state
   S.witnessOk=true;S.contamination=1;S.washes=0;
-  $('tbStage').textContent='▸ SPECIMEN HANDLING · STEP 1 OF 2';
+  $('tbStage').textContent='▸ SPECIMEN HANDLING · WITNESSING';
   $('tbWitness').style.display='flex';
   $('tbLoad').style.display='none';
 
@@ -2248,7 +2248,10 @@ function tubePick(btn,correct){
     addErr('Specimen tubed under the WRONG patient ID',30);
     notify('✗ ID MISMATCH — this would mislabel the sample','alert');
   }
-  setTimeout(toTubeLoad,800);
+  // Wash & load are performed automatically and cleanly — one tap, no manual drop sequence
+  S.washes=2;S.contamination=0.08;
+  setTimeout(()=>toast('🧫','WASHED & LOADED','Specimen rinsed through both drops, tubed clean'),650);
+  setTimeout(()=>{$('tOv').style.display='none';showDebrief();},1600);
 }
 function toTubeLoad(){
   $('tbStage').textContent='▸ SPECIMEN HANDLING · STEP 2 OF 2';
