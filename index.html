@@ -486,8 +486,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
   </div>
   </div>
   <div class="tb-right">
-    <div class="help-btn" id="eyeBtn" onclick="toggleEye()" role="button" tabindex="0" aria-label="Toggle eyepiece field-stop view">◉</div>
-    <div class="help-btn" id="fsBtn" onclick="toggleFullscreen()" role="button" tabindex="0" aria-label="Toggle fullscreen">⛶</div>
+    <div class="help-btn off" id="eyeBtn" onclick="toggleEye()" role="button" tabindex="0" aria-label="Toggle eyepiece (microscope) view">◉</div>
     <div class="help-btn" id="helpBtn" onclick="showHelp()" role="button" tabindex="0" aria-label="How to operate the controls">?</div>
     <div class="tb-item alert" id="hTempLine"><b id="hTemp" style="color:var(--r)">35.8°C</b></div>
     <div class="tb-item laser" id="hLaserLine" style="display:none"><b id="hLaser">LASER</b></div>
@@ -839,7 +838,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 const _el={};
 function $(id){return _el[id]||(_el[id]=document.getElementById(id));}
 function toggleEye(){eyeOn=!eyeOn;const b=$('eyeBtn');if(b)b.classList.toggle('off',!eyeOn);if(typeof haptic==='function')haptic(12);}
-function toggleFullscreen(){try{const d=document,el=d.documentElement;if(!d.fullscreenElement&&!d.webkitFullscreenElement){(el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el);}else{(d.exitFullscreen||d.webkitExitFullscreen||function(){}).call(d);}}catch(e){}}
 
 // ═══════════════════════════════════════
 // OBJECTIVES
@@ -861,7 +859,7 @@ const DC={
   h:{dM:1.2,tempR:0.45,fNoise:0.7,icmP:true, zP:5,jP:3,hints:false,sucPen:80},
 };
 let diff='m';
-let eyeOn=true;   // eyepiece field-stop silhouette over the DIC view
+let eyeOn=false;  // eyepiece field-stop silhouette over the DIC view (opt-in)
 
 // ═══════════════════════════════════════
 // STATE
