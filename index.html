@@ -895,6 +895,7 @@ function fresh(){
     juncPulses:0, juncCut:false,
     // Physics
     zonaIndent:0, cellStretch:0, blastoC:0,
+    vTeN:46, vTeSz:1, vTeJit:0, vIcmSz:1, vFrag:1, vZonaT:1,
     // Procedure
     step:0,
     // Scoring
@@ -1065,7 +1066,7 @@ const DICM={
 function drawScene(){
   const {W,H,sc,embX,embY,embR,bb,icmX,icmY,icmR,hernX,hernY}=EP();
   const bc=oCtx, M=DICM, iA=S.zoneCutAngle, fS=getFSharp();
-  const zT=embR*0.115, zP=DC[diff].zP, yk=(1-S.blastoC*0.08);
+  const zT=embR*0.115*(S.vZonaT||1), zP=DC[diff].zP, yk=(1-S.blastoC*0.08);
 
   // DIC bead-cell: diagonal gold(lit)->mid->steel-blue(shadow) shear
   function dicCell(x,y,rx,ry,rot,opt){
@@ -1107,7 +1108,7 @@ function drawScene(){
   let shd=bc.createLinearGradient(0,H*0.45,0,H); shd.addColorStop(0,'rgba(0,0,0,0)'); shd.addColorStop(1,M.shadow);
   bc.fillStyle=shd; bc.fillRect(0,0,W,H);
   bc.save(); bc.fillStyle=M.debris;
-  for(let i=0;i<26;i++){
+  for(let i=0;i<Math.round(26*(S.vFrag||1));i++){
     const dx=((Math.sin(i*2.6+S.t*0.05)+1)*0.5*W), dy=((Math.cos(i*1.8+S.t*0.04)+1)*0.5*H);
     const dd=Math.hypot(dx-embX,dy-embY); if(dd<embR*1.06&&dd>embR*0.42) continue;
     bc.globalAlpha=0.18+Math.abs(Math.sin(i*1.7))*0.22;
@@ -1124,18 +1125,18 @@ function drawScene(){
   // cells clipped inside the zona
   bc.save();
   bc.beginPath(); bc.arc(embX,embY,embR-zT*0.78,0,Math.PI*2); bc.clip();
-  const TE=48;
+  const TE=Math.round(S.vTeN||48), jit=(S.vTeJit||0);
   for(let i=0;i<TE;i++){
-    const a=i/TE*Math.PI*2;
+    const a=i/TE*Math.PI*2 + Math.sin(i*4.7)*jit;
     const fl=Math.sin(S.t*1.4+i*1.7)*0.04;
-    const teR=embR*0.07*(0.82+(Math.sin(i*12.9)*0.5+0.5)*0.46)*(1+fl);
-    const rr=embR-zT-teR*0.8;
+    const teR=embR*0.07*(S.vTeSz||1)*(0.82+(Math.sin(i*12.9)*0.5+0.5)*0.46)*(1+fl);
+    const rr=embR-zT-teR*0.8 + Math.sin(i*2.3)*embR*jit*0.1;
     dicCell(embX+Math.cos(a)*rr, embY+Math.sin(a)*rr*yk, teR*1.4, teR*0.92, a+Math.PI/2, {nuc:(i%3===0), alpha:0.92});
   }
-  const ICM=20;
+  const ICM=20, icmS=(S.vIcmSz||1);
   for(let i=0;i<ICM;i++){
-    const ang=i*2.39996, rad=Math.sqrt((i+0.5)/ICM)*icmR*0.96;
-    const cr=embR*0.052*(0.85+(Math.sin(i*7.3)*0.5+0.5)*0.5);
+    const ang=i*2.39996, rad=Math.sqrt((i+0.5)/ICM)*icmR*0.96*icmS;
+    const cr=embR*0.052*icmS*(0.85+(Math.sin(i*7.3)*0.5+0.5)*0.5);
     dicCell(icmX+Math.cos(ang)*rad*1.12, icmY+Math.sin(ang)*rad*0.82, cr*1.1, cr, i*0.7, {nuc:true, alpha:0.96});
   }
   bc.globalAlpha=0.5; bc.fillStyle=M.nuc;
@@ -1144,6 +1145,14 @@ function drawScene(){
     bc.beginPath(); bc.arc(embX+Math.cos(ang)*rad,embY+Math.sin(ang)*rad,Math.max(0.6,embR*0.012),0,Math.PI*2); bc.fill();
   }
   bc.globalAlpha=1;
+  if((S.vFrag||1)>1.1){
+    bc.save(); bc.fillStyle=M.nuc;
+    const nf=Math.round(((S.vFrag||1)-1)*9);
+    for(let i=0;i<nf;i++){ const ang=i*2.4+1.1, rad=Math.sqrt((i+0.3)/Math.max(1,nf))*(embR-zT)*0.82;
+      bc.globalAlpha=0.28+Math.abs(Math.sin(i*3.3))*0.26;
+      bc.beginPath(); bc.arc(embX+Math.cos(ang)*rad, embY+Math.sin(ang)*rad*yk, embR*0.02*(0.6+Math.abs(Math.sin(i*5))*0.9), 0, Math.PI*2); bc.fill(); }
+    bc.globalAlpha=1; bc.restore();
+  }
   bc.restore();
 
   // sphere shading
@@ -1993,17 +2002,17 @@ function updateErrHUD(){
 //   euo      : probability this case is truly euploid
 // ═══════════════════════════════════════
 const CASES=[
-  {id:'c1',name:'Textbook blastocyst',grade:'4AA',euo:0.70,icmStart:1.0,teQ:1.0,drift:1.0,r:1.0,
+  {id:'c1',name:'Textbook blastocyst',grade:'4AA',euo:0.70,icmStart:1.0,teQ:1.0,drift:1.0,r:1.0, vis:{teN:46,teSz:1.0,teJit:0.0,icmSz:1.1,frag:0.5,zonaT:1.0},
    brief:'34 y/o · fully expanded, prominent ICM, cohesive TE. The clean reference case.'},
-  {id:'c2',name:'Eccentric ICM',grade:'4AB',euo:0.62,icmStart:0.5,teQ:0.92,drift:1.05,r:1.0,
+  {id:'c2',name:'Eccentric ICM',grade:'4AB',euo:0.62,icmStart:0.5,teQ:0.92,drift:1.05,r:1.0, vis:{teN:46,teSz:1.0,teJit:0.05,icmSz:0.9,frag:0.8,zonaT:1.0},
    brief:'37 y/o · ICM sitting awkwardly — rotate further to clear the biopsy site.'},
-  {id:'c3',name:'Contracted blastocyst',grade:'3BB',euo:0.55,icmStart:2.4,teQ:0.85,drift:1.1,r:0.92,
+  {id:'c3',name:'Contracted blastocyst',grade:'3BB',euo:0.55,icmStart:2.4,teQ:0.85,drift:1.1,r:0.92, vis:{teN:54,teSz:0.85,teJit:0.09,icmSz:0.95,frag:1.0,zonaT:1.3},
    brief:'39 y/o · partially collapsed, smaller cavity. Less room, slower herniation.'},
-  {id:'c4',name:'Sparse trophectoderm',grade:'4BC',euo:0.48,icmStart:0.3,teQ:0.72,drift:1.1,r:1.0,
+  {id:'c4',name:'Sparse trophectoderm',grade:'4BC',euo:0.48,icmStart:0.3,teQ:0.72,drift:1.1,r:1.0, vis:{teN:28,teSz:1.25,teJit:0.30,icmSz:0.8,frag:1.0,zonaT:0.95},
    brief:'41 y/o · few, loose TE cells — work patiently to reach 5 without over-suction.'},
-  {id:'c5',name:'Hatching, drifting stage',grade:'5AB',euo:0.5,icmStart:1.6,teQ:0.9,drift:1.35,r:1.05,
+  {id:'c5',name:'Hatching, drifting stage',grade:'5AB',euo:0.5,icmStart:1.6,teQ:0.9,drift:1.35,r:1.05, vis:{teN:50,teSz:1.0,teJit:0.07,icmSz:1.0,frag:0.9,zonaT:0.65},
    brief:'38 y/o · large hatching blastocyst on an unstable stage. Demanding handling.'},
-  {id:'c6',name:'Poor-prognosis case',grade:'3BC',euo:0.35,icmStart:0.15,teQ:0.68,drift:1.25,r:0.9,
+  {id:'c6',name:'Poor-prognosis case',grade:'3BC',euo:0.35,icmStart:0.15,teQ:0.68,drift:1.25,r:0.9, vis:{teN:30,teSz:1.05,teJit:0.34,icmSz:0.68,frag:2.3,zonaT:1.15},
    brief:'43 y/o · contracted, sparse TE, low euploid odds. The full exam.'},
 ];
 let caseIdx=0;                         // currently selected case
@@ -2637,6 +2646,7 @@ function startSim(){
   S.aspInterval=1.5/C.teQ;     // poorer TE → cells aspirate more slowly
   S.driftMod=C.drift;          // stage handling difficulty
   S.caseR=C.r;                 // embryo size / morphology
+  {const _v=C.vis||{}; S.vTeN=_v.teN||46; S.vTeSz=_v.teSz||1; S.vTeJit=_v.teJit||0; S.vIcmSz=_v.icmSz||1; S.vFrag=_v.frag||1; S.vZonaT=_v.zonaT||1;}
   // Predetermine this case's TRUE ploidy from its clinical odds (biology,
   // not skill). Whether the trainee obtains a usable result is up to them.
   S.trueEuploid=Math.random()<C.euo;
