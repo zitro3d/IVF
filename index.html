@@ -851,9 +851,9 @@ let oIdx=1;
 // DIFFICULTY
 // ═══════════════════════════════════════
 const DC={
-  e:{dM:0.3,tempR:0.10,fNoise:0,  icmP:false,zP:3,jP:1,hints:true, sucPen:90},
-  m:{dM:0.7,tempR:0.25,fNoise:0.3,icmP:true, zP:4,jP:2,hints:true, sucPen:82},
-  h:{dM:1.2,tempR:0.45,fNoise:0.7,icmP:true, zP:5,jP:3,hints:false,sucPen:75},
+  e:{dM:0.3,tempR:0.10,fNoise:0,  icmP:false,zP:3,jP:1,hints:true, sucPen:95},
+  m:{dM:0.7,tempR:0.25,fNoise:0.3,icmP:true, zP:4,jP:2,hints:true, sucPen:90},
+  h:{dM:1.2,tempR:0.45,fNoise:0.7,icmP:true, zP:5,jP:3,hints:false,sucPen:80},
 };
 let diff='m';
 
@@ -1463,8 +1463,8 @@ function updatePhysics(){
     }
   }
   // Over-suction
-  if(S.bioSuc>dc.sucPen&&S.biopsy>70){
-    if(S.t%2.5<0.02)addErr('Excessive suction pressure — risk of cell lysis',8);
+  if(S.bioSuc>dc.sucPen&&S.biopsy>70&&S.step===5){
+    if(S.t%2.5<0.02)addErr('Excessive suction pressure — risk of cell lysis',5);
   }
 
   // Blastocoel HUD
@@ -1606,7 +1606,7 @@ function startSuc(){
   if(S.biopsy<72){notify('⚠ Advance pipette (◀) to herniated cells first','warn');addErr('Suction before pipette positioned',5);return;}
   if(!S.zoneCut){notify('⚠ Laser-drill zona first','warn');addErr('Suction before zona cut',8);return;}
   haptic(10);sPed.classList.add('pressing');
-  sInt=setInterval(()=>{S.bioSuc=Math.min(100,S.bioSuc+3);$('sPedLbl').textContent=`${Math.round(S.bioSuc)}%`;},60);
+  sInt=setInterval(()=>{S.bioSuc=Math.min(S.step===6?100:85,S.bioSuc+3);$('sPedLbl').textContent=`${Math.round(S.bioSuc)}%`;},60);
 }
 function stopSuc(){sPed.classList.remove('pressing');clearInterval(sInt);const r=setInterval(()=>{S.bioSuc=Math.max(0,S.bioSuc-2.5);$('sPedLbl').textContent=S.bioSuc>0?`${Math.round(S.bioSuc)}%`:'SUCTION';if(S.bioSuc<=0)clearInterval(r);},80);}
 sPed.addEventListener('touchstart',e=>{e.preventDefault();startSuc();},{passive:false});
@@ -2115,7 +2115,7 @@ function showDebrief(){
   const icmSc=S.icmOk?100:20;
   const lasSc=S.zoneCut?(S.ltNearICM?55:100):0;
   const celSc=Math.min(100,S.cells*12+(S.juncCut?20:0));
-  const blaSc=Math.max(0,100-Math.round(S.blastoC*100));
+  const blaSc=Math.max(0,Math.round(100-Math.max(0,S.blastoC-0.78)/0.22*100));
   const penSc=Math.max(0,100-S.penalties*2.5);
   const total=Math.round((focSc+icmSc+lasSc+celSc+blaSc+penSc)/6);
   const grand=Math.min(100,total+Math.round(S.score/40));
