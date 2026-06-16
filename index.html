@@ -170,6 +170,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 /* FOCUS dial (rotary) */
 .dial{position:relative;width:80px;height:80px;border-radius:50%;background:repeating-conic-gradient(from -90deg,rgba(255,255,255,0.15) 0 1.4deg,transparent 1.4deg 15deg);display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;}
 .dial:active{cursor:grabbing;}
+.dial.dragging{filter:brightness(1.12);}
+.dial.dragging .dial-ind{transition:none;}
 .dial-face{width:68px;height:68px;border-radius:50%;background:conic-gradient(from 130deg,#2a2f38,#3c434f,#23272f,#3c434f,#2a2f38);border:1px solid #4a515e;box-shadow:inset 0 2px 4px rgba(255,255,255,0.08),0 6px 14px rgba(0,0,0,0.5),0 0 12px rgba(245,165,36,0.4);position:relative;display:flex;align-items:center;justify-content:center;transition:box-shadow .3s var(--ease);}
 .dial-cap{width:40px;height:40px;border-radius:50%;background:linear-gradient(180deg,#333944,#1d2128);border:1px solid #454c58;display:flex;align-items:center;justify-content:center;font-size:8px;letter-spacing:1px;color:var(--ink3);}
 .dial-ind{position:absolute;top:5px;left:50%;width:6px;height:20px;border-radius:3px;background:linear-gradient(180deg,#ffe0a3,#f5a524);box-shadow:0 0 12px rgba(245,165,36,0.95),0 0 5px rgba(255,212,150,0.85);transform-origin:50% 35px;transform:translateX(-50%) rotate(0deg);transition:background .25s,box-shadow .25s;}
@@ -2753,10 +2755,16 @@ loop();
 (function(){
   var dial=document.getElementById('focusDial'),fk=document.getElementById('fk');
   if(!dial||!fk)return;
-  var on=false,y0=0,v0=0;
+  var on=false,y0=0,v0=0,vLast=0;
+  var SENS=0.38, STEP=2;                 // px->focus (lower = slower) and detent size
   function setV(v){v=Math.max(0,Math.min(100,v));fk.value=v;if(typeof onFocus==='function')onFocus(+v);}
-  function dn(y){on=true;y0=y;v0=+fk.value;dial.classList.add('dragging');}
-  function mv(y){if(on)setV(v0+(y0-y)*0.6);}
+  function dn(y){on=true;y0=y;v0=+fk.value;vLast=Math.round(v0/STEP)*STEP;dial.classList.add('dragging');}
+  function mv(y){
+    if(!on)return;
+    var raw=Math.max(0,Math.min(100,v0+(y0-y)*SENS));
+    var snapped=Math.round(raw/STEP)*STEP;
+    if(snapped!==vLast){vLast=snapped;setV(snapped);if(typeof haptic==='function')haptic(5);}   // click each detent
+  }
   function up(){on=false;dial.classList.remove('dragging');}
   dial.addEventListener('touchstart',function(e){e.preventDefault();dn(e.touches[0].clientY);},{passive:false});
   dial.addEventListener('touchmove',function(e){e.preventDefault();mv(e.touches[0].clientY);},{passive:false});
