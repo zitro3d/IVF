@@ -398,7 +398,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .a-verdict.fail{color:var(--r);border-color:var(--r-dim);background:rgba(255,77,97,0.07);}
 
 /* TUBING */
-#tOv{background:#080b12 radial-gradient(ellipse 92% 56% at 50% 26%,rgba(20,44,80,0.4),rgba(8,11,18,0.99) 74%);display:none;}
+#tOv{background:#080b12 radial-gradient(ellipse 92% 56% at 50% 26%,rgba(20,44,80,0.4),rgba(8,11,18,0.99) 74%);display:none;justify-content:center;}
 .tb-title{font-size:22px;letter-spacing:.5px;color:var(--ink);font-weight:660;}
 .tb-sub{font-size:12px;letter-spacing:.2px;line-height:1.55;color:var(--ink3);text-align:center;max-width:300px;}
 .tb-dish{font-size:9px;letter-spacing:2px;color:var(--mut);text-align:center;line-height:1.8;border:1px dashed rgba(255,255,255,0.16);border-radius:14px;padding:14px 28px;background:rgba(47,107,255,0.05);}
@@ -1630,6 +1630,10 @@ S.joyActive=false;S.joyX=0;S.joyY=0;
 jEl.addEventListener('touchstart',e=>{e.preventDefault();S.joyActive=true;const r=jEl.getBoundingClientRect();jOrig={x:r.left+r.width/2,y:r.top+r.height/2};},{passive:false});
 jEl.addEventListener('touchmove',e=>{e.preventDefault();if(!S.joyActive)return;const t=e.touches[0];let dx=t.clientX-jOrig.x,dy=t.clientY-jOrig.y;const d=Math.sqrt(dx*dx+dy*dy);if(d>jMax){dx=dx/d*jMax;dy=dy/d*jMax;}S.joyX=dx/jMax;S.joyY=dy/jMax;jkEl.style.left=(50+(dx/jMax)*40)+'%';jkEl.style.top=(50+(dy/jMax)*40)+'%';},{passive:false});
 ['touchend','touchcancel'].forEach(ev=>jEl.addEventListener(ev,e=>{e.preventDefault();S.joyActive=false;S.joyX=0;S.joyY=0;jkEl.style.left='50%';jkEl.style.top='50%';},{passive:false}));
+// Desktop: drag the stage joystick with the mouse
+jEl.addEventListener('mousedown',e=>{e.preventDefault();S.joyActive=true;const r=jEl.getBoundingClientRect();jOrig={x:r.left+r.width/2,y:r.top+r.height/2};});
+document.addEventListener('mousemove',e=>{if(!S.joyActive)return;let dx=e.clientX-jOrig.x,dy=e.clientY-jOrig.y;const d=Math.sqrt(dx*dx+dy*dy);if(d>jMax){dx=dx/d*jMax;dy=dy/d*jMax;}S.joyX=dx/jMax;S.joyY=dy/jMax;jkEl.style.left=(50+(dx/jMax)*40)+'%';jkEl.style.top=(50+(dy/jMax)*40)+'%';});
+document.addEventListener('mouseup',()=>{if(!S.joyActive)return;S.joyActive=false;S.joyX=0;S.joyY=0;jkEl.style.left='50%';jkEl.style.top='50%';});
 
 // ═══════════════════════════════════════
 // HOLD PEDAL
