@@ -648,7 +648,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
     <div class="ch-rows">
       <div class="ch-row"><div class="ch-tile" style="color:var(--g)">◓</div><div class="ch-lbl">Drag the <b>Focus</b> dial to sharpen the zona</div></div>
       <div class="ch-row"><div class="ch-tile" style="color:var(--accent2)">⊕</div><div class="ch-lbl">Drag the <b>Stage</b> knob to move the embryo</div></div>
-      <div class="ch-row"><div class="ch-tile" style="color:var(--o)">⊙</div><div class="ch-lbl">Hold <b>Grip</b> + Stage to rotate the ICM to 9 o’clock</div></div>
+      <div class="ch-row"><div class="ch-tile" style="color:var(--o)">⊙</div><div class="ch-lbl">Hold <b>Grip</b> + drag <b>Stage</b> <u>at the same time</u> (two fingers) to rotate the ICM to 9 o’clock</div></div>
       <div class="ch-row"><div class="ch-tile" style="color:var(--r)">◎</div><div class="ch-lbl">Hold <b>Suction</b> to aspirate the cells</div></div>
       <div class="ch-row"><div class="ch-tile" style="color:var(--ink2)">⇄</div><div class="ch-lbl">Scroll the <b>Zoom</b> wheel · slide <b>Pipette</b> to advance</div></div>
       <div class="ch-row"><div class="ch-tile" style="color:var(--l)">✦</div><div class="ch-lbl">Drag the target onto the zona, then tap <b>Laser</b></div></div>
@@ -1381,8 +1381,8 @@ function loop(){
     // Auto-step on focus locked
     if(fS>0.82&&S.step===1&&!S.focusLocked){
       S.focusLocked=true;nextStep();addScore(120);
-      toast('🔬','SHARP FOCUS','Zona pellucida in focus');
-      notify('✓ ZONA IN FOCUS — activate HOLD pedal, rotate ICM to 9 o\'clock','good');
+      toast('✌️','USE TWO FINGERS','Hold the GRIP pedal AND drag the STAGE at the same time to rotate');
+      notify('✓ FOCUSED — STEP 2: hold GRIP + drag STAGE together (two fingers) to turn the ICM to 9 o\'clock','good');
       // Reveal laser target on zona right side (~3 o\'clock) opposite default ICM
       const ep0=EP();
       S.ltAngle=0.05;
@@ -1679,7 +1679,7 @@ function fireLaser(){
   if(S.step===3||S.step===2){
     if(!S.ltOnZona){notify('⚠ Drag the red ✦ target onto the zona wall first','warn');if(diff==='h'){addErr('Laser fired off-target — thermal exposure to the embryo',6);S.wastedShots=(S.wastedShots||0)+1;flash('red');haptic(15);}return;}
     if(S.ltNearICM&&dc.icmP){notify('⚠ LASER TOO CLOSE TO ICM — move target to opposite side','alert');addErr('Laser near ICM',20);flash('red');return;}
-    if(!S.icmOk&&dc.icmP){notify('⚠ Position ICM to 9 o\'clock first (use HOLD + joystick)','warn');return;}
+    if(!S.icmOk&&dc.icmP){notify('⚠ Position ICM first — hold GRIP + drag STAGE together (two fingers)','warn');return;}
     // Temperature: warn but don't block — just penalise (realistic: lab may fire before full equilibration)
     if(!S.tempOk){notify('⚠ Stage not at 37°C — firing anyway (−5 pts)','warn');S.penalties+=5;}
     // If still in step 2, auto-advance to step 3
@@ -1899,7 +1899,7 @@ function updateCellDots(){
 const PHASES=[
   '',
   'STEP 1 — Warm stage · Focus zona pellucida',
-  'STEP 2 — HOLD embryo · Rotate ICM to 9 oclock',
+  'STEP 2 — Hold GRIP + drag STAGE together (two fingers) · ICM to 9 oclock',
   'STEP 3 — Drag laser target · Fire to drill zona',
   'STEP 4 — Waiting for TE herniation...',
   'STEP 5 — Advance pipette ◀ · Hold SUCTION pedal',
