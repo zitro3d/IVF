@@ -648,7 +648,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
     <div class="ch-rows">
       <div class="ch-row"><div class="ch-tile" style="color:var(--g)">◓</div><div class="ch-lbl">Drag the <b>Focus</b> dial to sharpen the zona</div></div>
       <div class="ch-row"><div class="ch-tile" style="color:var(--accent2)">⊕</div><div class="ch-lbl">Drag the <b>Stage</b> knob to move the embryo</div></div>
-      <div class="ch-row"><div class="ch-tile" style="color:var(--o)">⊙</div><div class="ch-lbl">Hold <b>Grip</b> + drag <b>Stage</b> <u>at the same time</u> (two fingers) to rotate the ICM to 9 o’clock</div></div>
+      <div class="ch-row"><div class="ch-tile" style="color:var(--o)">⊙</div><div class="ch-lbl">Tap <b>Hold</b> to lock the grip, then drag <b>Stage</b> to rotate the ICM to 9 o’clock</div></div>
       <div class="ch-row"><div class="ch-tile" style="color:var(--r)">◎</div><div class="ch-lbl">Hold <b>Suction</b> to aspirate the cells</div></div>
       <div class="ch-row"><div class="ch-tile" style="color:var(--ink2)">⇄</div><div class="ch-lbl">Scroll the <b>Zoom</b> wheel · slide <b>Pipette</b> to advance</div></div>
       <div class="ch-row"><div class="ch-tile" style="color:var(--l)">✦</div><div class="ch-lbl">Drag the target onto the zona, then tap <b>Laser</b></div></div>
@@ -1339,7 +1339,7 @@ function loop(){
       if(S.icmOk&&!S._icmWas){
         S._icmWas=true;
         if(S.step===2){
-          nextStep();addScore(150);
+          nextStep();addScore(150);stopHold();   // release the locked grip once positioned
           toast('🔄','ICM POSITIONED','9 o\'clock — safe to drill zona');
           notify('ICM at 9 — drag red target onto zona right side, then fire laser','good');
           // Reposition laser target to zona right side (3 o'clock = opposite 9 o'clock ICM)
@@ -1381,8 +1381,8 @@ function loop(){
     // Auto-step on focus locked
     if(fS>0.82&&S.step===1&&!S.focusLocked){
       S.focusLocked=true;nextStep();addScore(120);
-      toast('✌️','USE TWO FINGERS','Hold the GRIP pedal AND drag the STAGE at the same time to rotate');
-      notify('✓ FOCUSED — STEP 2: hold GRIP + drag STAGE together (two fingers) to turn the ICM to 9 o\'clock','good');
+      toast('👆','TAP TO LOCK GRIP','Tap the HOLD pedal to lock the grip, then drag the STAGE to rotate');
+      notify('✓ FOCUSED — STEP 2: tap HOLD to lock the grip, then drag the STAGE to turn the ICM to 9 o\'clock','good');
       // Reveal laser target on zona right side (~3 o\'clock) opposite default ICM
       const ep0=EP();
       S.ltAngle=0.05;
@@ -1496,7 +1496,7 @@ function updatePhysics(){
         if(diff==='h'){
           showTensionMeter();
           $('lSub').textContent='AUTO';__noop.textContent='hold tension';
-          notify('EXPERT CUT — hold GRIP for counter-traction + modulate SUCTION to keep TENSION in the green band','ln');
+          notify('EXPERT CUT — tap HOLD to lock the grip, then modulate SUCTION to keep TENSION in the green band','ln');
         }
       }
       if(S.cells===8)notify('8 CELLS — maximum. Now laser-cut cell junctions.','warn');
@@ -1644,10 +1644,9 @@ const hPed=$('hPed');
 let hInt=null;
 function startHold(){if(!S.live)return;haptic(10);S.holdActive=true;S.holdSuc=Math.max(S.holdSuc,5);hPed.classList.add('pressing');hInt=setInterval(()=>{S.holdSuc=Math.min(100,S.holdSuc+3.5);$('hPedLbl').textContent=`${Math.round(S.holdSuc)}%`;},60);}
 function stopHold(){S.holdActive=false;hPed.classList.remove('pressing');clearInterval(hInt);const r=setInterval(()=>{S.holdSuc=Math.max(0,S.holdSuc-2.5);$('hPedLbl').textContent=S.holdSuc>0?`${Math.round(S.holdSuc)}%`:'HOLD';$('hSucPa') && ($('hSucPa').textContent=`${Math.round(S.holdSuc*0.5)} Pa`);if(S.holdSuc<=0)clearInterval(r);},80);}
-hPed.addEventListener('touchstart',e=>{e.preventDefault();startHold();},{passive:false});
-hPed.addEventListener('touchend',e=>{e.preventDefault();stopHold();},{passive:false});
-hPed.addEventListener('touchcancel',e=>{e.preventDefault();stopHold();},{passive:false});
-hPed.addEventListener('mousedown',startHold);hPed.addEventListener('mouseup',stopHold);hPed.addEventListener('mouseleave',stopHold);
+function toggleHold(){if(!S.live)return;if(S.holdActive)stopHold();else startHold();}   // tap to lock the grip, tap again to release
+hPed.addEventListener('touchstart',e=>{e.preventDefault();toggleHold();},{passive:false});
+hPed.addEventListener('mousedown',e=>{e.preventDefault();toggleHold();});
 
 // ═══════════════════════════════════════
 // BIOPSY SUCTION PEDAL
@@ -1679,7 +1678,7 @@ function fireLaser(){
   if(S.step===3||S.step===2){
     if(!S.ltOnZona){notify('⚠ Drag the red ✦ target onto the zona wall first','warn');if(diff==='h'){addErr('Laser fired off-target — thermal exposure to the embryo',6);S.wastedShots=(S.wastedShots||0)+1;flash('red');haptic(15);}return;}
     if(S.ltNearICM&&dc.icmP){notify('⚠ LASER TOO CLOSE TO ICM — move target to opposite side','alert');addErr('Laser near ICM',20);flash('red');return;}
-    if(!S.icmOk&&dc.icmP){notify('⚠ Position ICM first — hold GRIP + drag STAGE together (two fingers)','warn');return;}
+    if(!S.icmOk&&dc.icmP){notify('⚠ Position ICM first — tap HOLD to lock the grip, then drag the STAGE','warn');return;}
     // Temperature: warn but don't block — just penalise (realistic: lab may fire before full equilibration)
     if(!S.tempOk){notify('⚠ Stage not at 37°C — firing anyway (−5 pts)','warn');S.penalties+=5;}
     // If still in step 2, auto-advance to step 3
@@ -1720,7 +1719,7 @@ function fireLaser(){
     if(S.cells<5){notify('⚠ Aspirate at least 5 cells first','warn');return;}
     // On EXPERT the cut is delivered automatically by holding tension in the
     // band — manual fire just reminds the trainee of the two-handed task.
-    if(diff==='h'){notify('Hold GRIP + modulate SUCTION — the cut fires when tension is in the green band','ln');return;}
+    if(diff==='h'){notify('Tap HOLD to lock the grip, then modulate SUCTION — the cut fires when tension is in the green band','ln');return;}
     if(!S.bridgeFormed){notify('⚠ Hold SUCTION longer to stretch cell bridge','warn');return;}
     if(S._laserArmed){return;}
     S._laserArmed=true;
@@ -1899,7 +1898,7 @@ function updateCellDots(){
 const PHASES=[
   '',
   'STEP 1 — Warm stage · Focus zona pellucida',
-  'STEP 2 — Hold GRIP + drag STAGE together (two fingers) · ICM to 9 oclock',
+  'STEP 2 — Tap HOLD to lock grip, then drag STAGE · ICM to 9 oclock',
   'STEP 3 — Drag laser target · Fire to drill zona',
   'STEP 4 — Waiting for TE herniation...',
   'STEP 5 — Advance pipette ◀ · Hold SUCTION pedal',
@@ -2782,7 +2781,7 @@ window.addEventListener('keydown',e=>{
   switch(k){
     case 'q':nudgeFocus(-3);break;
     case 'e':nudgeFocus(+3);break;
-    case 'h':if(!KEYS.has('h')){KEYS.add('h');startHold();}break;
+    case 'h':if(!KEYS.has('h')){KEYS.add('h');toggleHold();}break;
     case 'j':if(!KEYS.has('j')){KEYS.add('j');startSuc();}break;
     case ' ':case 'f':e.preventDefault();fireLaser();break;
     case '.':case '>':pipStep(+1);break;   // advance pipette toward cells
@@ -2796,7 +2795,6 @@ window.addEventListener('keyup',e=>{
   if(!KEYS.has(k))return;
   KEYS.delete(k);
   if(MOVE.includes(k))kbVec();
-  if(k==='h')stopHold();
   if(k==='j')stopSuc();
 });
 // Allow Enter/Space to activate click-style custom controls when tabbed to.
