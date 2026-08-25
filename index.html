@@ -865,8 +865,8 @@ let oIdx=1;
 // ═══════════════════════════════════════
 const DC={
   e:{dM:0.3,tempR:0.10,fNoise:0,  icmP:false,zP:3,jP:1,hints:true, sucPen:95},
-  m:{dM:0.7,tempR:0.25,fNoise:0.3,icmP:true, zP:4,jP:2,hints:true, sucPen:90},
-  h:{dM:1.2,tempR:0.45,fNoise:0.7,icmP:true, zP:5,jP:3,hints:false,sucPen:80},
+  m:{dM:0.7,tempR:0.25,fNoise:0.3,icmP:true, zP:3,jP:2,hints:true, sucPen:90},
+  h:{dM:1.2,tempR:0.45,fNoise:0.7,icmP:true, zP:3,jP:3,hints:false,sucPen:80},
 };
 let diff='m';
 let eyeOn=false;  // eyepiece field-stop silhouette over the DIC view (opt-in)
@@ -1937,7 +1937,7 @@ const TECHNIQUE=[
   null,
   {t:'1 · FOCUS THE ZONA',     d:'Bring the zona pellucida — the bright outer shell — to a crisp edge using the FOCUS knob. Let the heated stage reach 37°C first; a cold stage stresses the embryo.', tgt:'TARGET · Focus SHARP (≥82%) at 37.0°C'},
   {t:'2 · POSITION THE ICM',   d:'Press and hold the HOLD pedal to grip the embryo, then rotate it with the STAGE joystick until the inner cell mass sits at 9 o\'clock — opposite the side you will breach.', tgt:'TARGET · ICM at the 9 o\'clock position'},
-  {t:'3 · DRILL THE ZONA',     d:'Drag the red laser target onto the zona on the side OPPOSITE the ICM (≈3 o\'clock). Fire 3–5 short pulses to open a clean breach. Never fire close to the ICM.', tgt:'TARGET · 3–5 pulses, well clear of ICM'},
+  {t:'3 · DRILL THE ZONA',     d:'Drag the red laser target onto the zona on the side OPPOSITE the ICM (≈3 o\'clock). Fire up to 3 short pulses to open a clean breach. Never fire close to the ICM.', tgt:'TARGET · up to 3 pulses, well clear of ICM'},
   {t:'4 · AWAIT HERNIATION',   d:'Once breached, trophectoderm cells naturally push out through the opening. Wait for them to herniate — do not aspirate early.', tgt:'TARGET · TE cells visibly herniating'},
   {t:'5 · ASPIRATE TE CELLS',  d:'Advance the biopsy pipette (◀) to the herniated cells, then hold SUCTION to draw 5–8 cells in. Keep pressure gentle — excess suction lyses cells.', tgt:'TARGET · 5–8 cells, gentle suction'},
   {t:'6 · CUT THE JUNCTIONS',  d:'Apply gentle suction to stretch the cytoplasmic bridge, then fire the laser at the cell junctions near the pipette tip to cleanly separate the specimen.', tgt:'TARGET · laser-cut bridge at pipette tip'},
