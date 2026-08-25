@@ -1627,11 +1627,11 @@ function positionLTAtBridge(){
 // JOYSTICK
 // ═══════════════════════════════════════
 const jEl=$('joy'),jkEl=$('jk');
-let jOrig={x:0,y:0};const jMax=22;
+let jOrig={x:0,y:0},joyTouch=null;const jMax=22;
 S.joyActive=false;S.joyX=0;S.joyY=0;
-jEl.addEventListener('touchstart',e=>{e.preventDefault();S.joyActive=true;const r=jEl.getBoundingClientRect();jOrig={x:r.left+r.width/2,y:r.top+r.height/2};},{passive:false});
-jEl.addEventListener('touchmove',e=>{e.preventDefault();if(!S.joyActive)return;const t=e.touches[0];let dx=t.clientX-jOrig.x,dy=t.clientY-jOrig.y;const d=Math.sqrt(dx*dx+dy*dy);if(d>jMax){dx=dx/d*jMax;dy=dy/d*jMax;}S.joyX=dx/jMax;S.joyY=dy/jMax;jkEl.style.left=(50+(dx/jMax)*40)+'%';jkEl.style.top=(50+(dy/jMax)*40)+'%';},{passive:false});
-['touchend','touchcancel'].forEach(ev=>jEl.addEventListener(ev,e=>{e.preventDefault();S.joyActive=false;S.joyX=0;S.joyY=0;jkEl.style.left='50%';jkEl.style.top='50%';},{passive:false}));
+jEl.addEventListener('touchstart',e=>{e.preventDefault();const t=e.changedTouches[0];joyTouch=t.identifier;S.joyActive=true;const r=jEl.getBoundingClientRect();jOrig={x:r.left+r.width/2,y:r.top+r.height/2};},{passive:false});
+jEl.addEventListener('touchmove',e=>{e.preventDefault();if(!S.joyActive)return;let t=null;for(const c of e.touches){if(c.identifier===joyTouch){t=c;break;}}if(!t)return;let dx=t.clientX-jOrig.x,dy=t.clientY-jOrig.y;const d=Math.sqrt(dx*dx+dy*dy);if(d>jMax){dx=dx/d*jMax;dy=dy/d*jMax;}S.joyX=dx/jMax;S.joyY=dy/jMax;jkEl.style.left=(50+(dx/jMax)*40)+'%';jkEl.style.top=(50+(dy/jMax)*40)+'%';},{passive:false});
+['touchend','touchcancel'].forEach(ev=>jEl.addEventListener(ev,e=>{let hit=false;for(const c of e.changedTouches){if(c.identifier===joyTouch){hit=true;break;}}if(!hit)return;e.preventDefault();joyTouch=null;S.joyActive=false;S.joyX=0;S.joyY=0;jkEl.style.left='50%';jkEl.style.top='50%';},{passive:false}));
 // Desktop: drag the stage joystick with the mouse
 jEl.addEventListener('mousedown',e=>{e.preventDefault();S.joyActive=true;const r=jEl.getBoundingClientRect();jOrig={x:r.left+r.width/2,y:r.top+r.height/2};});
 document.addEventListener('mousemove',e=>{if(!S.joyActive)return;let dx=e.clientX-jOrig.x,dy=e.clientY-jOrig.y;const d=Math.sqrt(dx*dx+dy*dy);if(d>jMax){dx=dx/d*jMax;dy=dy/d*jMax;}S.joyX=dx/jMax;S.joyY=dy/jMax;jkEl.style.left=(50+(dx/jMax)*40)+'%';jkEl.style.top=(50+(dy/jMax)*40)+'%';});
@@ -2905,7 +2905,7 @@ function updatePipKnob(){
 }
 (function(){
   const tr=document.getElementById('pslider'); if(!tr)return;
-  let on=false;
+  let on=false,pslTouch=null;
   function applyPointer(x){
     if(!S.live)return;
     const r=tr.getBoundingClientRect();
@@ -2918,9 +2918,10 @@ function updatePipKnob(){
   function dn(x){on=true;applyPointer(x);}
   function mv(x){if(on)applyPointer(x);}
   function up(){on=false;}
-  tr.addEventListener('touchstart',e=>{e.preventDefault();dn(e.touches[0].clientX);},{passive:false});
-  tr.addEventListener('touchmove',e=>{e.preventDefault();mv(e.touches[0].clientX);},{passive:false});
-  tr.addEventListener('touchend',up); tr.addEventListener('touchcancel',up);
+  tr.addEventListener('touchstart',e=>{e.preventDefault();const t=e.changedTouches[0];pslTouch=t.identifier;dn(t.clientX);},{passive:false});
+  tr.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.touches){if(t.identifier===pslTouch){mv(t.clientX);break;}}},{passive:false});
+  function pslEnd(e){for(const t of e.changedTouches){if(t.identifier===pslTouch){pslTouch=null;up();break;}}}
+  tr.addEventListener('touchend',pslEnd); tr.addEventListener('touchcancel',pslEnd);
   tr.addEventListener('mousedown',e=>{e.preventDefault();dn(e.clientX);});
   document.addEventListener('mousemove',e=>{if(on)mv(e.clientX);});
   document.addEventListener('mouseup',up);
