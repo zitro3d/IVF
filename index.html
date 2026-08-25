@@ -1335,7 +1335,7 @@ function loop(){
       S.icmAngle+=(S.joyX*0.018+S.joyY*0.012);
       S.icmAngle=((S.icmAngle%(Math.PI*2))+Math.PI*2)%(Math.PI*2);
       const deg=(S.icmAngle*180/Math.PI+360)%360;
-      S.icmOk=deg>=195&&deg<=335;
+      S.icmOk=deg>=150&&deg<=210;
       if(S.icmOk&&!S._icmWas){
         S._icmWas=true;
         if(S.step===2){
@@ -1409,7 +1409,7 @@ function loop(){
     const icmOk=S.icmOk;
     // Show actual clock position to guide user
     const icmDeg2=(S.icmAngle*180/Math.PI+360)%360;
-    const clockHour=(Math.round((icmDeg2+15)/30))%12||12;
+    const clockHour=((Math.round(icmDeg2/30)+2)%12)+1;
     const icmPos=icmOk?'9 oclock OK':clockHour+' oclock -- rotate to 9';
     $('hIcm').textContent='ICM: '+icmPos;
     $('hIcmLine').className='tb-item'+(icmOk?'':' warn');
